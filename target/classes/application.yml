@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: oddplayerapi-mvp
+
+app:
+  mvp:
+    tmpBase: /data/tmp/video-frames-mvp
+    maxBatchItems: 10
+    maxSubjectAttributes: 100
+    maxDurationSeconds: 5
+    maxFps: 10
+    maxWidth: 1280
+    acceptedContainers:
+      - mp4
+      - mov
+      - mkv
+      - webm
+    ffmpeg:
+      path: ffmpeg
+      timeoutSeconds: 60
+      fontFile: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+    ffprobe:
+      path: ffprobe
+      timeoutSeconds: 30
