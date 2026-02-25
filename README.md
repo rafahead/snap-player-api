@@ -51,6 +51,14 @@ Coleção de chamadas HTTP para uso local/manual:
 - `http/v2-share-public.http`
 - `http/internal-observability.http`
 
+Observação (IntelliJ HTTP Client):
+- `http/v2-snaps.http` captura automaticamente `lastSnapId` e `lastVideoId` após `POST /v2/snaps`
+- `http/v2-share-public.http` captura automaticamente `lastPublicShareToken` após `POST /share`
+
+Configs compartilhadas do IntelliJ (`.run/`):
+- `Snap Player API (Sync)` (modo padrão, create síncrono)
+- `Snap Player API (Async)` (habilita `app.snap.asyncCreateEnabled=true`)
+
 ## O Que o MVP Faz
 
 - Recebe um JSON array com filmagens
@@ -414,6 +422,27 @@ O snapshot inclui, entre outros:
 - `completedCount` / `failedCount`
 - `avgTerminalDurationMs` / `maxTerminalDurationMs`
 - `terminalByStatus`
+
+## O Que Falta (Consolidado)
+
+### Código (próximas entregas/slices)
+
+- decidir rollout do modo assíncrono por ambiente (quando ativar `app.snap.asyncCreateEnabled=true` por padrão)
+- validar smoke manual completo em modo assíncrono (create/polling/share/public/métricas)
+- avaliar endpoint de progresso dedicado (se necessário para payload menor no player)
+- endurecimento para múltiplos workers (heartbeat de lock, tuning de claim/concurrency)
+- telemetria externa (Actuator/Prometheus/OpenTelemetry) e operação alvo (PostgreSQL + S3 + worker separado)
+
+### Planos / documentação
+
+- manter `prompts/entregas-api-snap-v2.md` atualizado com os próximos slices da Entrega 4
+- revisar `prompts/player-integracao.md` conforme integração real do `snap-player` avançar
+- registrar ADRs quando houver mudança estrutural em progresso/job/operação
+
+### Estrutura de `prompts/` (avaliação)
+
+- a estrutura atual está funcional, mas já está ficando "flat"
+- a proposta de reorganização incremental (sem urgência) foi documentada em `prompts/README.md`
 
 ## Exemplo de Chamada (Com Overlay e Subject)
 

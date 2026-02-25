@@ -69,7 +69,7 @@ Regra prática:
 ### Planos de integração com cliente
 
 - `prompts/player-integracao.md`
-  - estudo e plano de integração do app Flutter `oddplayer`
+  - estudo e plano de integração do app Flutter `snap-player` (cliente; pode haver path local legado `oddplayer`)
 
 ### Decisões arquiteturais
 
@@ -208,6 +208,86 @@ Formato:
 - conflito de regra entre `master` e `master-v2`
 - plano de entrega falando de regra de produto que não está no master
 - prompts grandes demais sem índice/referência
+
+## Estado consolidado (API / fase atual)
+
+Situação resumida da implementação (com base no código e no plano):
+- `Entrega 1`: concluída (API `v2` Snap-first síncrona)
+- `Entrega 2`: concluída (share público + listas `mine`)
+- `Entrega 3`: concluída (assinatura no request, token por feature flag, paginação/ordenação, observabilidade mínima)
+- `Entrega 4`: em andamento (slices 1-3 implementados: fila em DB, worker local, retry/backoff, recuperação de stale lock, cleanup e telemetria de jobs)
+
+## Pendências consolidadas (código)
+
+### Curto prazo (mais provável próxima execução)
+
+- decidir quando ativar `app.snap.asyncCreateEnabled=true` por padrão em dev/homolog
+- validar smoke manual completo em modo assíncrono (create -> polling -> share/public -> métricas)
+- avaliar necessidade de endpoint de progresso dedicado (payload menor que `GET /v2/snaps/{id}`)
+
+### Médio prazo (Entrega 4 / endurecimento)
+
+- endurecimento para ambiente distribuído:
+  - heartbeat/refresh de lock durante jobs longos
+  - tuning de claim/batch/timeout por ambiente
+  - estratégia de idempotência/reprocessamento explícita
+- telemetria externa (Actuator/Prometheus/OpenTelemetry) substituindo snapshots in-memory
+- persistência/infra alvo do master técnico:
+  - PostgreSQL
+  - storage S3 compatível
+  - worker(s) fora do processo web
+
+### Produto / integrações (fora do core técnico imediato)
+
+- autenticação/autorização real por usuário/assinatura (hoje há apenas token por feature flag em rotas privadas)
+- integração do player `snap-player` com contratos `v2`
+- revisão de UX/contrato para snaps `PENDING`/`FAILED` no cliente
+
+## Pendências consolidadas (planos/documentação)
+
+- manter `prompts/entregas-api-snap-v2.md` como espelho fiel do progresso da Entrega 4 (slices e critérios operacionais)
+- revisar `prompts/player-integracao.md` para refletir nomenclatura `snap-player` e integração com `v2` assíncrona
+- quando houver decisão estrutural nova (ex.: progresso dedicado / worker externo), registrar ADR novo antes da implementação
+- manter `http/*.http` atualizado a cada endpoint/parâmetro novo (regra já vigente)
+
+## Avaliação da estrutura de diretório (`prompts/`)
+
+Resposta curta: **está boa o suficiente para a fase atual**, mas já está ficando **achatada (flat)** demais.
+
+Pontos positivos:
+- baixo atrito (arquivos importantes ficam fáceis de achar)
+- convenções claras entre `master`, `entregas` e `adrs`
+- `prompts/README.md` já funciona como guia de governança
+
+Pontos que começam a pesar:
+- muitos arquivos de naturezas diferentes no mesmo nível (`master`, `entregas`, `mvp`, `player`, `template`)
+- risco de crescer e perder previsibilidade de onde colocar novos estudos/integrações
+- arquivos históricos/auxiliares (`mvp`, integrações) competindo visualmente com as fontes de verdade
+
+## Organização sugerida (próxima etapa, sem urgência)
+
+Para reduzir ruído sem quebrar o fluxo atual, a recomendação é uma reorganização **incremental**:
+
+Estrutura sugerida (alvo):
+- `prompts/README.md` (índice/governança)
+- `prompts/masters/`
+  - `master-tecnico.md`
+  - `master-produto-snap.md`
+- `prompts/entregas/`
+  - `entregas-api-snap-v2.md`
+- `prompts/adrs/`
+- `prompts/estudos/`
+  - `mvp-tecnico.md`
+  - `player-integracao.md`
+- `prompts/templates/`
+  - `template-app.md`
+
+### Estratégia recomendada para reorganizar sem dor
+
+1. Reorganizar apenas quando não houver entrega crítica em andamento
+2. Mover arquivos e atualizar referências em `README.md` + `prompts/README.md` + masters
+3. Fazer uma revisão rápida de links/path após o move
+4. Registrar no plano que a reorganização foi estrutural (sem alterar conteúdo de negócio)
 
 ## Padrões recomendados (referências)
 

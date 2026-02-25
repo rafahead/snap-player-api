@@ -5,29 +5,33 @@
 ### - consumir endpoint público (`GET /public/snaps/{token}`)
 ###
 ### Passos:
-### 1) Crie um snap via `http/v2-snaps.http` e copie `snapId`
-### 2) Preencha `@snapId`
-### 3) Rode `POST Share Snap`
-### 4) Copie `publicShareToken` da resposta para `@publicShareToken`
-### 5) Rode `GET Public Snap`
+### 1) Crie um snap via `http/v2-snaps.http` (ele salva `lastSnapId` automaticamente)
+### 2) Rode `POST Share Snap`
+### 3) O script pós-resposta salva `lastPublicShareToken`
+### 4) Rode `GET Public Snap`
 
 @baseUrl = http://127.0.0.1:8080
 @assinaturaCodigo = default
 @assinaturaToken = dev-default-token
-@snapId = 00000000-0000-0000-0000-000000000000
-@publicShareToken = fill-after-share-response
 
 ### POST Share Snap (idempotente)
-POST {{baseUrl}}/v2/snaps/{{snapId}}/share
+POST {{baseUrl}}/v2/snaps/{{lastSnapId}}/share
 X-Assinatura-Codigo: {{assinaturaCodigo}}
 X-Request-Id: v2-share-snap-001
 # X-Assinatura-Token: {{assinaturaToken}}
 
+> {%
+  // Captura token público para encadear o GET /public sem copiar/colar manual.
+  if (response.status === 200 && response.body && response.body.publicShareToken) {
+    client.global.set("lastPublicShareToken", response.body.publicShareToken);
+    client.log("lastPublicShareToken=" + response.body.publicShareToken);
+  }
+%}
+
 ### GET Public Snap (sem headers de assinatura/token)
-GET {{baseUrl}}/public/snaps/{{publicShareToken}}
+GET {{baseUrl}}/public/snaps/{{lastPublicShareToken}}
 X-Request-Id: public-snap-001
 
 ### GET Public Snap (exemplo de token inexistente -> 404)
 GET {{baseUrl}}/public/snaps/token-inexistente
 X-Request-Id: public-snap-not-found-001
-

@@ -13,7 +13,7 @@ Use junto com:
 
 Evoluir o serviço atual de extração de frames/snapshot para um produto de **snaps colaborativos em vídeo**, acessível por:
 
-- **Player (Flutter `oddplayer`)**
+- **Player (Flutter `snap-player`)**
 - **API** (consumo programático)
 
 Um **snap** passa a ser a entidade principal do sistema. O usuário informa a URL do vídeo, navega no player, cria snaps (instantâneos ou em intervalo), preenche um formulário baseado em um template de `subject`, e o sistema processa/armazena os recortes, frames e metadados.

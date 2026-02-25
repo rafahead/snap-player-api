@@ -263,6 +263,38 @@ Status atual:
 Importante:
 - preservar contrato principal do `snap` para evitar retrabalho no player/API clientes
 
+## Checklist Entrega 4 (consolidado)
+
+### Já implementado (slices 1-3)
+
+- tabela de fila em DB (`snap_processing_job`) com migration Flyway
+- worker local com polling e claim via `FOR UPDATE SKIP LOCKED`
+- `POST /v2/snaps` assíncrono opcional por feature flag (`app.snap.asyncCreateEnabled`)
+- `GET /v2/snaps/{id}` reutilizado como polling de estado/resultado
+- payload aditivo `job` em `SnapResponse` (create/get by id)
+- retentativas com backoff exponencial (`RETRY_WAIT`)
+- recuperação de jobs `RUNNING` órfãos por timeout de lock (`workerLockTimeoutSeconds`)
+- cleanup agendado de jobs terminais antigos (retention-based)
+- observabilidade de jobs via `/internal/observability/snap-job-metrics`
+- testes de integração cobrindo async create, retry/backoff, stale recovery e cleanup
+- arquivos `http/*.http` atualizados para fluxo assíncrono e métricas
+
+### Pendente (próximos slices)
+
+- decidir rollout do modo assíncrono como padrão (por ambiente)
+- avaliar endpoint de progresso dedicado (se `GET /v2/snaps/{id}` ficar pesado para o player)
+- heartbeat/renovação de lock para jobs longos
+- tuning de concorrência/claim para múltiplos workers
+- telemetria externa (Actuator/Prometheus/OpenTelemetry)
+- operação com PostgreSQL + storage S3 compatível (alinhamento com `master-tecnico.md`)
+- worker fora do processo web (separação operacional)
+
+### Pendências de plano/documentação associadas
+
+- refletir a decisão de rollout (quando definida) em `master-tecnico.md` e neste plano
+- registrar ADR se houver mudança estrutural no contrato de progresso/job
+- manter exemplos `.http` e README sincronizados quando o modo async virar padrão
+
 ## Cronograma resumido (API somente)
 
 Começando hoje:

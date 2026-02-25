@@ -1,4 +1,4 @@
-# Plano Player (Flutter `oddplayer`)
+# Plano Player (Flutter `snap-player`)
 
 ## Papel deste arquivo (Plano Player)
 
@@ -11,7 +11,7 @@ Referências:
 
 ## Objetivo
 
-Documentar o estado atual do projeto Flutter `oddplayer` (`/home/rafahead/workspaces/flutter/oddplayer`) para planejar a unificação com a API `snap-player-api` (MVP atual e plano master), sem alterar o app ainda.
+Documentar o estado atual do projeto Flutter `snap-player` (repositório local atualmente em `/home/rafahead/workspaces/flutter/oddplayer`) para planejar a unificação com a API `snap-player-api` (base atual e plano master), sem alterar o app ainda.
 
 Este documento serve como base de conversa para:
 - definir o papel do player na arquitetura final
@@ -20,7 +20,7 @@ Este documento serve como base de conversa para:
 
 ## Projeto estudado
 
-- Caminho: `/home/rafahead/workspaces/flutter/oddplayer`
+- Caminho local atual: `/home/rafahead/workspaces/flutter/oddplayer` (path legado; nome do produto: `snap-player`)
 - Stack: Flutter + `video_player`
 - Descrição atual: `Boi frame a frame`
 
