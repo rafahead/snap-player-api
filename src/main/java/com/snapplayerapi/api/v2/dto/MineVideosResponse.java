@@ -10,6 +10,7 @@ import java.util.List;
 public record MineVideosResponse(
         String nickname,
         int total,
+        PageMetaResponse page,
         List<MineVideoItemResponse> items
 ) {
 }

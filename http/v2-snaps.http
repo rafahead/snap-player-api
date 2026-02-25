@@ -1,0 +1,133 @@
+### Snap Player API - v2 Snaps (privado)
+### ---------------------------------------------------------------------------
+### Este arquivo cobre o fluxo principal da API v2 Snap-first:
+### - criar snap
+### - buscar snap por id
+### - listar snaps por vídeo
+### - buscar por subject/atributo
+### - listar "mine" (snaps e vídeos)
+###
+### Configuração de headers:
+### - `X-Assinatura-Codigo` é opcional (fallback = `default`)
+### - `X-Assinatura-Token` só é obrigatório quando `app.snap.requireApiToken=true`
+###
+### Dica de uso:
+### 1) Rode "POST Create Snap (videoUrl)" e copie `snapId` e `videoId` da resposta
+### 2) Preencha `@snapId` e `@videoId` abaixo
+### 3) Rode as consultas/listagens
+###
+### Modo assíncrono (Entrega 4 slices 1-3):
+### - Ative `app.snap.asyncCreateEnabled=true`
+### - `POST /v2/snaps` passa a retornar `status=PENDING`
+### - `SnapResponse` (create/get by id) passa a incluir `job` com estado da fila/worker
+### - Use `GET /v2/snaps/{snapId}` como polling até `COMPLETED` / `FAILED`
+### - O worker local (polling DB) usa `app.snap.worker*` e está habilitado por padrão
+### - Retentativas usam backoff exponencial (`workerRetry*`), com recuperação de `RUNNING` órfão
+### - Cleanup de jobs antigos usa `app.snap.jobCleanup*`
+
+@baseUrl = http://127.0.0.1:8080
+@assinaturaCodigo = default
+@assinaturaToken = dev-default-token
+@nickname = operador-http
+@snapId = 00000000-0000-0000-0000-000000000000
+@videoId = 00000000-0000-0000-0000-000000000000
+
+### POST Create Snap (videoUrl)
+### Regra importante:
+### - Se `subject.id` for omitido, a API aplica fallback para `snapId`.
+POST {{baseUrl}}/v2/snaps
+Content-Type: application/json
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-create-snap-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+{
+  "videoUrl": "https://example.com/video-v2-http.mp4",
+  "nickname": "{{nickname}}",
+  "email": "{{nickname}}@example.com",
+  "dataFilmagem": "2026-02-24T14:30:00-03:00",
+  "startFrame": 360,
+  "durationSeconds": 1.0,
+  "snapshotDurationSeconds": 2.0,
+  "fps": 5,
+  "maxWidth": 640,
+  "format": "jpg",
+  "quality": 8,
+  "subject": {
+    "attributes": [
+      { "key": "brinco", "type": "string", "stringValue": "HTTP-001" },
+      { "key": "peso", "type": "number", "numberValue": 450.0 }
+    ]
+  },
+  "overlay": {
+    "enabled": true,
+    "mode": "SUBJECT",
+    "position": "TOP_RIGHT"
+  }
+}
+
+### GET Snap by Id
+### Em modo assíncrono, repita esta chamada até o `status` sair de `PENDING`.
+### Campos úteis no payload:
+### - `job.status`: `PENDING` | `RUNNING` | `RETRY_WAIT` | `COMPLETED` | `FAILED`
+### - `job.attempts`, `job.maxAttempts`
+### - `job.nextRunAt` (quando houver retry agendado)
+### - `job.lastError` (falha atual/última falha)
+GET {{baseUrl}}/v2/snaps/{{snapId}}
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-get-snap-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Snap by Id (polling async - exemplo)
+GET {{baseUrl}}/v2/snaps/{{snapId}}
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-get-snap-poll-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Snaps by Video (paginação/ordenação padrão Entrega 3)
+GET {{baseUrl}}/v2/videos/{{videoId}}/snaps?offset=0&limit=20&sortBy=resolvedStartSeconds&sortDir=asc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-list-video-snaps-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Snaps by Video (filtro por nickname)
+GET {{baseUrl}}/v2/videos/{{videoId}}/snaps?nickname={{nickname}}&offset=0&limit=20&sortBy=createdAt&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-list-video-snaps-nickname-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Search by subjectId
+GET {{baseUrl}}/v2/snaps/search?subjectId=animal-123&offset=0&limit=20&sortBy=createdAt&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-search-subject-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Search by attribute (string equality)
+GET {{baseUrl}}/v2/snaps/search?attrKey=brinco&attrValue=HTTP-001&offset=0&limit=20&sortBy=createdAt&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-search-attr-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET My Snaps (nickname temporário; Entrega 2/3)
+GET {{baseUrl}}/v2/snaps/mine?nickname={{nickname}}&offset=0&limit=20&sortBy=createdAt&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-mine-snaps-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET My Videos (agregado por vídeo, ordenado por atividade mais recente)
+GET {{baseUrl}}/v2/videos/mine?nickname={{nickname}}&offset=0&limit=20&sortBy=latestSnapCreatedAt&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-mine-videos-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET My Videos (ordenar por snapCount)
+GET {{baseUrl}}/v2/videos/mine?nickname={{nickname}}&offset=0&limit=20&sortBy=snapCount&sortDir=desc
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-mine-videos-by-count-001
+# X-Assinatura-Token: {{assinaturaToken}}
+
+### GET Search (exemplo de erro de validação - attrKey sem attrValue)
+GET {{baseUrl}}/v2/snaps/search?attrKey=brinco
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: v2-search-invalid-001
+# X-Assinatura-Token: {{assinaturaToken}}

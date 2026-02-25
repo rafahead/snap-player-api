@@ -223,7 +223,7 @@ Retorno público:
 - Listas por `nickname` funcionam.
 - Busca básica por `subject` retorna snaps corretos.
 
-## Entrega 3 - Base para evolução (sem mudar contrato)
+## Entrega 3 - Base para evolução (sem quebra de contrato; mudanças aditivas permitidas)
 
 ## Meta
 
@@ -231,6 +231,9 @@ Preparar terreno para:
 - multi-assinatura operacional completa
 - token de API por assinatura
 - player integrado
+
+Status atual:
+- concluída (implementados: contexto de assinatura, token por feature flag, paginação/ordenação padronizadas e observabilidade mínima)
 
 ## Prazo estimado adicional
 
@@ -251,6 +254,11 @@ Fora do escopo imediato deste plano, mas já prevista:
 - worker com `SKIP LOCKED`
 - estados de processamento
 - retorno de `POST` assíncrono por `snapId`/job
+
+Status atual:
+- iniciada (slices 1-3 implementados): fila em DB + worker local + `POST /v2/snaps` assíncrono opcional por feature flag
+- implementado adicionalmente: `job` em `SnapResponse` (create/get by id), retentativas com backoff exponencial, recuperação de `RUNNING` órfão (stale lock), cleanup agendado de jobs terminais e snapshot interno `/internal/observability/snap-job-metrics`
+- pendente: tornar o modo assíncrono padrão, endpoint de progresso dedicado (se necessário) e endurecimento operacional para ambiente distribuído (heartbeat/claim tuning, persistência/telemetria externa)
 
 Importante:
 - preservar contrato principal do `snap` para evitar retrabalho no player/API clientes
@@ -278,7 +286,7 @@ Total para v1 síncrona muito boa (sem player, sem auth completa):
 - busca básica por subject (ou `subjectId` mínimo)
 - testes de serviço e controller
 - smoke test com vídeo real
-- documentação/README atualizados e comentários detalhados no código da entrega
+- documentação/README atualizados, arquivos `http/*.http` atualizados e comentários detalhados no código da entrega
 
 ## Checklist Entrega 2
 
@@ -293,6 +301,12 @@ Total para v1 síncrona muito boa (sem player, sem auth completa):
 - preparação para token
 - paginação/ordenação padronizadas
 - observabilidade mínima
+
+Status de execução atual:
+- concluído: abstração de contexto de assinatura
+- concluído: preparação para token (feature flag)
+- concluído: paginação/ordenação padronizadas (`offset`, `limit`, `sortBy`, `sortDir` + `page` metadata)
+- concluído: observabilidade mínima (`X-Request-Id`, access logs, error logs centralizados, snapshot interno HTTP)
 
 ## Política de atualização dos planos
 

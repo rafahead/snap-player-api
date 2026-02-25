@@ -21,8 +21,8 @@ ADRs já aceitos (resumo):
 Fases/entregas planejadas (API):
 - `Entrega 1`: API `Snap`-first síncrona (sem player, sem auth, storage local)
 - `Entrega 2`: compartilhamento público + listas `mine`
-- `Entrega 3`: base para multi-assinatura/token/paginação/observabilidade
-- `Entrega 4`: migração para processamento assíncrono com worker/DB
+- `Entrega 3`: base para multi-assinatura/token/paginação/observabilidade mínima
+- `Entrega 4`: migração para processamento assíncrono com worker/DB (iniciada; slices 1-3 de fila local/worker/retry/cleanup/telemetria)
 
 Regra de atualização dos planos:
 1. atualizar `master` correto (`técnico` ou `produto`)
@@ -35,7 +35,8 @@ Regra de atualização dos planos:
 - `MVP` implementado (sincrono, local, sem banco/S3)
 - `Entrega 1` da API `v2` implementada (Snap-first síncrona com persistência local em banco + Flyway)
 - `Entrega 2` da API `v2` implementada (share público + listas `mine`)
-- `Entrega 3` (parcial) iniciada: contexto de `assinatura` formalizado + validação opcional por token (feature flag)
+- `Entrega 3` da API `v2` implementada (contexto de assinatura + token por feature flag + paginação/ordenação + observabilidade mínima)
+- `Entrega 4` (slices 1-3) implementada parcialmente: fila em banco (`snap_processing_job`) + worker local com `SKIP LOCKED` + modo assíncrono opcional no `POST /v2/snaps` + retry/backoff/stale-recovery + cleanup + telemetria de jobs
 - `Master plan` documentado para evolucao assíncrona com PostgreSQL, workers e storage S3
 
 Arquivos de plano:
@@ -43,6 +44,12 @@ Arquivos de plano:
 - `prompts/master-tecnico.md`
 - `prompts/master-produto-snap.md`
 - `prompts/entregas-api-snap-v2.md`
+
+Coleção de chamadas HTTP para uso local/manual:
+- `http/v1-processing.http`
+- `http/v2-snaps.http`
+- `http/v2-share-public.http`
+- `http/internal-observability.http`
 
 ## O Que o MVP Faz
 
@@ -143,8 +150,8 @@ mvn -Dmaven.repo.local=.m2/repository spring-boot:run '-Dspring-boot.run.argumen
 Implementado nesta fase:
 - `POST /v2/snaps` (criação síncrona de snap, com `videoId` ou `videoUrl`)
 - `GET /v2/snaps/{snapId}` (consulta detalhada)
-- `GET /v2/videos/{videoId}/snaps` (listagem por vídeo, filtro opcional `nickname`)
-- `GET /v2/snaps/search` (busca básica por `subjectId` e/ou `attrKey` + `attrValue` string)
+- `GET /v2/videos/{videoId}/snaps` (listagem por vídeo, filtro opcional `nickname`, paginação/ordenação)
+- `GET /v2/snaps/search` (busca básica por `subjectId` e/ou `attrKey` + `attrValue` string, paginação/ordenação)
 - Persistência com Flyway/JPA para:
   - `assinatura` (seed `default`)
   - `subject_template` (seed `default`)
@@ -235,8 +242,8 @@ Observações de ambiente:
 Implementado nesta fase:
 - `POST /v2/snaps/{snapId}/share` (gera ou reutiliza `publicShareToken`, resposta idempotente)
 - `GET /public/snaps/{token}` (retorno público com clip/frames e metadados públicos do snap)
-- `GET /v2/snaps/mine?nickname=...` (lista snaps por `nickname` na assinatura ativa)
-- `GET /v2/videos/mine?nickname=...` (lista vídeos com atividade do usuário, agregando `snapCount`)
+- `GET /v2/snaps/mine?nickname=...` (lista snaps por `nickname` na assinatura ativa, com paginação/ordenação)
+- `GET /v2/videos/mine?nickname=...` (lista vídeos com atividade do usuário, agregando `snapCount`, com paginação/ordenação)
 
 Regras aplicadas na Entrega 2:
 - compartilhamento público depende de token aleatório (`UUID` sem hífens) persistido em `snap.public_share_token`
@@ -254,7 +261,7 @@ Cobertura de testes (integração):
 - listas `mine` (`/v2/snaps/mine` e `/v2/videos/mine`)
 - erros principais (`token` público inexistente, `nickname` em branco)
 
-## Entrega 3 (parcial) - Contexto de assinatura + preparação para token
+## Entrega 3 - Contexto de assinatura + token (feature flag) + paginação/ordenação
 
 Item 1 implementado (sem quebrar contrato):
 - endpoints `/v2/*` agora aceitam header opcional `X-Assinatura-Codigo`
@@ -269,9 +276,31 @@ Item 2 implementado (feature flag / stub de auth por token):
 - falhas de token retornam `401` (`Assinatura API token required` / `Invalid assinatura API token`)
 - endpoints públicos (`/public/*`) permanecem sem token
 
-Objetivo deste passo:
-- formalizar o contexto de assinatura no request agora
-- preparar o terreno para autenticação por token de assinatura na próxima etapa
+Item 3 implementado (mudança aditiva compatível):
+- listagens `/v2/videos/{videoId}/snaps`, `/v2/snaps/search`, `/v2/snaps/mine` e `/v2/videos/mine` agora aceitam:
+  - `offset` (default `0`)
+  - `limit` (default `50`, max `100`)
+  - `sortBy` (varia por endpoint)
+  - `sortDir` (`asc`/`desc`)
+- respostas dessas listas agora incluem objeto `page` com metadados padronizados:
+  - `offset`, `limit`, `returned`, `hasMore`, `sortBy`, `sortDir`
+- `total` e `items` foram mantidos para compatibilidade com clientes existentes
+
+Objetivo atingido nesta entrega:
+- formalizar contexto de assinatura no request
+- preparar autenticação por token de assinatura sem ativar por padrão
+- padronizar paginação/ordenação sem quebra de contrato (mudança aditiva)
+
+Item 4 implementado (observabilidade mínima):
+- header `X-Request-Id` em todas as respostas HTTP (gerado automaticamente quando ausente)
+- logs de acesso por request (`method`, `path`, `status`, `durationMs`, `requestId`)
+- logs centralizados de erro no `GlobalExceptionHandler` (4xx em `WARN`, 5xx em `ERROR`)
+- métricas HTTP in-memory agregadas por `método + rota` (baixa cardinalidade, usando pattern de rota do Spring)
+- endpoint interno de snapshot:
+  - `GET /internal/observability/http-metrics`
+
+Observação de uso:
+- o endpoint `/internal/observability/http-metrics` é voltado para dev/diagnóstico inicial e pode ser substituído futuramente por Actuator/Prometheus/OpenTelemetry
 
 Exemplo (compatível com o comportamento atual):
 
@@ -291,6 +320,100 @@ curl -sS http://127.0.0.1:8080/v2/snaps/search \
   --get \
   --data-urlencode 'subjectId=animal-123'
 ```
+
+Exemplo com paginação/ordenação (Entrega 3 item 3):
+
+```bash
+curl -sS http://127.0.0.1:8080/v2/snaps/mine \
+  -H 'X-Assinatura-Codigo: default' \
+  --get \
+  --data-urlencode 'nickname=operador1' \
+  --data-urlencode 'offset=0' \
+  --data-urlencode 'limit=20' \
+  --data-urlencode 'sortBy=createdAt' \
+  --data-urlencode 'sortDir=desc'
+```
+
+Exemplo de snapshot de observabilidade HTTP (Entrega 3 item 4):
+
+```bash
+curl -sS http://127.0.0.1:8080/internal/observability/http-metrics
+```
+
+## Entrega 4 (parcial / slices 1-3) - Fila em banco + worker local + retry/cleanup/telemetria
+
+Implementado nesta etapa:
+- migration `V3` com fila `snap_processing_job`
+- worker local de polling em banco com claim via `FOR UPDATE SKIP LOCKED`
+- `POST /v2/snaps` com modo assíncrono opcional (feature flag)
+  - quando `app.snap.asyncCreateEnabled=false` (padrão): mantém comportamento síncrono atual
+  - quando `app.snap.asyncCreateEnabled=true`: retorna `status=PENDING` e enfileira job
+- `GET /v2/snaps/{snapId}` preservado como endpoint de polling de estado/resultados
+- `SnapResponse` (create/get by id) agora inclui objeto opcional `job` com estado da fila/worker
+- retentativas com backoff exponencial e cap (`RETRY_WAIT`)
+- recuperação de jobs `RUNNING` órfãos/stale por timeout de lock
+- cleanup agendado de rows terminais antigos em `snap_processing_job` (retention-based)
+- telemetria interna de jobs via endpoint `/internal/observability/snap-job-metrics`
+
+Propriedades adicionadas (`app.snap.*`):
+- `asyncCreateEnabled`
+- `workerEnabled`
+- `workerPollDelayMs`
+- `workerBatchSize`
+- `workerMaxAttempts`
+- `workerRetryDelaySeconds`
+- `workerRetryBackoffMultiplier`
+- `workerRetryMaxDelaySeconds`
+- `workerLockTimeoutSeconds`
+- `workerInstanceId`
+- `jobCleanupEnabled`
+- `jobCleanupDelayMs`
+- `jobRetentionHours`
+- `jobCleanupBatchSize`
+
+Fluxo assíncrono (modo ativo):
+1. `POST /v2/snaps` cria `snap` com `status=PENDING` e persiste request snapshot
+2. API enfileira `snap_processing_job`
+3. worker local faz claim do job (`SKIP LOCKED`) e processa o pipeline FFmpeg reaproveitado
+4. em falha transitória, job vai para `RETRY_WAIT` com `nextRunAt` (backoff exponencial)
+5. em restart/crash, jobs `RUNNING` antigos podem ser recuperados automaticamente por timeout
+6. worker atualiza o mesmo `snap` para `COMPLETED` ou `FAILED`
+7. cliente faz polling em `GET /v2/snaps/{snapId}`
+
+Observações:
+- mudança é protegida por feature flag para rollout gradual
+- contrato de `SnapResponse` foi preservado; campos de processamento ficam nulos/vazios enquanto `PENDING`
+- o campo `job` é aditivo e expõe estado operacional sem quebrar clientes existentes
+- busca/listagens podem retornar snaps `PENDING` (útil para UX de fila/progresso)
+- cleanup remove apenas rows internos da fila (`snap_processing_job`), não remove `snap`
+
+Campos de `SnapResponse.job` (quando disponíveis):
+- `jobId`, `status`, `attempts`, `maxAttempts`
+- `nextRunAt`, `lockedAt`, `lockOwner`
+- `startedAt`, `finishedAt`
+- `lastError`
+
+Status de job observáveis (internos/async):
+- `PENDING`
+- `RUNNING`
+- `RETRY_WAIT`
+- `COMPLETED`
+- `FAILED`
+
+Exemplo de snapshot de telemetria de jobs (Entrega 4 slice 3):
+
+```bash
+curl -sS http://127.0.0.1:8080/internal/observability/snap-job-metrics
+```
+
+O snapshot inclui, entre outros:
+- `claimedCount`
+- `retryScheduledCount`
+- `staleRecoveredCount`
+- `cleanupDeletedCount`
+- `completedCount` / `failedCount`
+- `avgTerminalDurationMs` / `maxTerminalDurationMs`
+- `terminalByStatus`
 
 ## Exemplo de Chamada (Com Overlay e Subject)
 

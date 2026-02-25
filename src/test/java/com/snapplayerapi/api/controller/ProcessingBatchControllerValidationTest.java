@@ -3,6 +3,7 @@ package com.snapplayerapi.api.controller;
 import com.snapplayerapi.api.dto.ProcessingBatchResponse;
 import com.snapplayerapi.api.service.ProcessingVideoFrameService;
 import com.snapplayerapi.api.web.GlobalExceptionHandler;
+import com.snapplayerapi.api.web.HttpObservabilityRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,14 @@ class ProcessingBatchControllerValidationTest {
 
     @MockBean
     private ProcessingVideoFrameService processingVideoFrameService;
+
+    /**
+     * `@WebMvcTest` loads MVC infrastructure (including the observability interceptor) but not all
+     * application components. The interceptor depends on this registry, so we provide a test mock to
+     * keep the controller slice isolated.
+     */
+    @MockBean
+    private HttpObservabilityRegistry httpObservabilityRegistry;
 
     @Test
     void shouldReturn400WhenVideoUrlIsMissing() throws Exception {

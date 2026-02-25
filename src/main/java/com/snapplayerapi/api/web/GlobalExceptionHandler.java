@@ -6,6 +6,9 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,6 +20,8 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
@@ -70,6 +75,12 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message, List<String> details) {
+        String requestId = MDC.get("requestId");
+        if (status.is5xxServerError()) {
+            log.error("api_error requestId={} status={} message={} detailsCount={}", requestId, status.value(), message, details.size());
+        } else {
+            log.warn("api_error requestId={} status={} message={} detailsCount={}", requestId, status.value(), message, details.size());
+        }
         ApiErrorResponse body = new ApiErrorResponse(
                 OffsetDateTime.now(),
                 status.value(),

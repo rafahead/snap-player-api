@@ -46,3 +46,20 @@ app:
     # Optional absolute base URL used by `POST /v2/snaps/{id}/share`.
     # When omitted, the API returns a relative `publicUrl` (e.g. `/public/snaps/{token}`).
     publicBaseUrl:
+    # Entrega 4 (migração para assíncrono): disabled by default to preserve Entregas 1-3 behavior.
+    asyncCreateEnabled: false
+    # Local polling worker for `snap_processing_job` (DB queue). Safe to leave enabled when
+    # `asyncCreateEnabled=false` because no jobs will be enqueued by `POST /v2/snaps`.
+    workerEnabled: true
+    workerPollDelayMs: 1000
+    workerBatchSize: 1
+    workerMaxAttempts: 3
+    workerRetryDelaySeconds: 10
+    workerRetryBackoffMultiplier: 2.0
+    workerRetryMaxDelaySeconds: 300
+    workerLockTimeoutSeconds: 120
+    workerInstanceId: local-worker
+    jobCleanupEnabled: true
+    jobCleanupDelayMs: 60000
+    jobRetentionHours: 168
+    jobCleanupBatchSize: 100

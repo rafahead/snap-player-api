@@ -54,6 +54,10 @@ Implementar uma API escalável e assíncrona para processar um BATCH (lista) de 
      - comentários devem explicitar cenário, regra validada e motivo do teste
    - Em `README` e documentação operacional:
      - registrar endpoints, payloads, exemplos e observações relevantes sempre que houver funcionalidade nova
+   - Em `http/*.http` (cliente HTTP local do repositório):
+     - manter arquivos de chamadas atualizados conforme evolução dos endpoints
+     - incluir variáveis/configuração mínimas para execução local (baseUrl, headers, placeholders)
+     - cobrir fluxos principais, endpoints públicos/privados e exemplos de erro relevantes
    - Evitar comentários genéricos sem valor; priorizar explicações úteis para manutenção futura.
 
 ## Contratos de API (Endpoints)

@@ -40,6 +40,7 @@ public record SnapResponse(
         List<ProcessingFrameResponse> frames,
         String outputDir,
         String error,
+        SnapJobResponse job,
         OffsetDateTime createdAt,
         OffsetDateTime processedAt
 ) {

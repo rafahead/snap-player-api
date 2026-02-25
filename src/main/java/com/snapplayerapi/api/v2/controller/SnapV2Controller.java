@@ -8,6 +8,8 @@ import com.snapplayerapi.api.v2.dto.SnapResponse;
 import com.snapplayerapi.api.v2.dto.SnapSearchResponse;
 import com.snapplayerapi.api.v2.dto.VideoSnapsResponse;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import com.snapplayerapi.api.v2.service.SnapV2Service;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -101,23 +103,31 @@ public class SnapV2Controller {
      * Lista snaps de um vídeo no contexto da assinatura ativa (Entrega 1: `default`).
      *
      * <p>Permite filtro opcional por nickname para suportar listas "mine" básicas
-     * antes da autenticação completa.</p>
+     * antes da autenticação completa. Entrega 3 padroniza paginação/ordenação (`offset`, `limit`,
+     * `sortBy`, `sortDir`) para manter consistência com as demais listas.</p>
      */
     @GetMapping("/videos/{videoId}/snaps")
     public ResponseEntity<VideoSnapsResponse> listByVideo(
             @RequestHeader(name = ASSINATURA_HEADER, required = false) String assinaturaCodigo,
             @RequestHeader(name = ASSINATURA_TOKEN_HEADER, required = false) String assinaturaToken,
             @PathVariable UUID videoId,
-            @RequestParam(required = false) String nickname
+            @RequestParam(required = false) String nickname,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir
     ) {
-        return ResponseEntity.ok(snapV2Service.listSnapsByVideo(assinaturaCodigo, assinaturaToken, videoId, nickname));
+        return ResponseEntity.ok(snapV2Service.listSnapsByVideo(
+                assinaturaCodigo, assinaturaToken, videoId, nickname, offset, limit, sortBy, sortDir
+        ));
     }
 
     /**
      * Busca snaps por `subjectId` e/ou atributo string.
      *
      * <p>Escopo intencionalmente limitado na Entrega 1: apenas igualdade string
-     * (`attrKey` + `attrValue`) e/ou filtro por `subjectId`.</p>
+     * (`attrKey` + `attrValue`) e/ou filtro por `subjectId`. Entrega 3 adiciona paginação/ordenação
+     * padronizadas para evitar contratos diferentes entre endpoints de lista.</p>
      */
     @GetMapping("/snaps/search")
     public ResponseEntity<SnapSearchResponse> search(
@@ -125,24 +135,36 @@ public class SnapV2Controller {
             @RequestHeader(name = ASSINATURA_TOKEN_HEADER, required = false) String assinaturaToken,
             @RequestParam(required = false) String subjectId,
             @RequestParam(required = false) String attrKey,
-            @RequestParam(required = false) String attrValue
+            @RequestParam(required = false) String attrValue,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir
     ) {
-        return ResponseEntity.ok(snapV2Service.search(assinaturaCodigo, assinaturaToken, subjectId, attrKey, attrValue));
+        return ResponseEntity.ok(snapV2Service.search(
+                assinaturaCodigo, assinaturaToken, subjectId, attrKey, attrValue, offset, limit, sortBy, sortDir
+        ));
     }
 
     /**
      * Lists snaps created by the user identified by `nickname` in the active assinatura.
      *
      * <p>This is a temporary identity mechanism used until auth/token support is introduced in a
-     * later delivery.</p>
+     * later delivery. Entrega 3 standardizes paging/sorting params to match other list routes.</p>
      */
     @GetMapping("/snaps/mine")
     public ResponseEntity<MineSnapsResponse> listMySnaps(
             @RequestHeader(name = ASSINATURA_HEADER, required = false) String assinaturaCodigo,
             @RequestHeader(name = ASSINATURA_TOKEN_HEADER, required = false) String assinaturaToken,
-            @RequestParam @NotBlank String nickname
+            @RequestParam @NotBlank String nickname,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir
     ) {
-        return ResponseEntity.ok(snapV2Service.listMineSnaps(assinaturaCodigo, assinaturaToken, nickname));
+        return ResponseEntity.ok(snapV2Service.listMineSnaps(
+                assinaturaCodigo, assinaturaToken, nickname, offset, limit, sortBy, sortDir
+        ));
     }
 
     /**
@@ -152,8 +174,14 @@ public class SnapV2Controller {
     public ResponseEntity<MineVideosResponse> listMyVideos(
             @RequestHeader(name = ASSINATURA_HEADER, required = false) String assinaturaCodigo,
             @RequestHeader(name = ASSINATURA_TOKEN_HEADER, required = false) String assinaturaToken,
-            @RequestParam @NotBlank String nickname
+            @RequestParam @NotBlank String nickname,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir
     ) {
-        return ResponseEntity.ok(snapV2Service.listMineVideos(assinaturaCodigo, assinaturaToken, nickname));
+        return ResponseEntity.ok(snapV2Service.listMineVideos(
+                assinaturaCodigo, assinaturaToken, nickname, offset, limit, sortBy, sortDir
+        ));
     }
 }

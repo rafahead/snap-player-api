@@ -1,0 +1,74 @@
+### Snap Player API - v1 Processing (legado/canônico)
+### ---------------------------------------------------------------------------
+### Este arquivo concentra chamadas do pipeline síncrono de processamento de frames.
+### O endpoint canônico atual é `/v1/video-frames/process`, mas o alias legado
+### `/v1/video-frames/mvp/process` continua ativo para compatibilidade.
+###
+### Como usar:
+### 1) Ajuste `@baseUrl` se a API estiver em outra porta/host
+### 2) Execute a requisição `POST Process Batch (canônico)` primeiro
+### 3) Se precisar validar compatibilidade antiga, execute a versão `alias legado`
+###
+### Observação:
+### - É necessário ter `ffmpeg`/`ffprobe` configurados no ambiente para processamento real.
+
+@baseUrl = http://127.0.0.1:8080
+@requestId = manual-fill-if-needed
+
+### POST Process Batch (canônico)
+POST {{baseUrl}}/v1/video-frames/process
+Content-Type: application/json
+X-Request-Id: v1-processing-demo-001
+
+[
+  {
+    "videoUrl": "https://example.com/video-demo.mp4",
+    "startSeconds": 12.0,
+    "startFrame": 360,
+    "durationSeconds": 1.0,
+    "snapshotDurationSeconds": 2.0,
+    "fps": 5,
+    "maxWidth": 640,
+    "format": "jpg",
+    "quality": 10,
+    "dataFilmagem": "2026-02-24T14:30:00-03:00",
+    "subject": {
+      "id": "animal-123",
+      "attributes": [
+        { "key": "brinco", "type": "string", "stringValue": "12334234534" },
+        { "key": "peso", "type": "number", "numberValue": 450.0 },
+        { "key": "lote", "type": "string", "stringValue": "A1" }
+      ]
+    },
+    "overlay": {
+      "enabled": true,
+      "mode": "SUBJECT",
+      "position": "TOP_RIGHT",
+      "fontSize": 28,
+      "boxColor": "black@0.7",
+      "fontColor": "white",
+      "margin": 20,
+      "padding": 10
+    }
+  }
+]
+
+### POST Process Batch (alias legado compatível)
+### Use esta chamada apenas para validar clientes antigos.
+POST {{baseUrl}}/v1/video-frames/mvp/process
+Content-Type: application/json
+X-Request-Id: v1-processing-legacy-001
+
+[
+  {
+    "videoUrl": "https://example.com/video-demo.mp4",
+    "startSeconds": 5.0,
+    "durationSeconds": 1.0,
+    "dataFilmagem": "2026-02-24T14:30:00-03:00",
+    "subject": {
+      "id": "legacy-subject-1",
+      "attributes": []
+    }
+  }
+]
+

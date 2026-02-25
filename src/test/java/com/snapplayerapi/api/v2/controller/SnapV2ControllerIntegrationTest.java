@@ -140,6 +140,10 @@ class SnapV2ControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.videoId").value(videoId))
                 .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.page.offset").value(0))
+                .andExpect(jsonPath("$.page.limit").value(50))
+                .andExpect(jsonPath("$.page.sortBy").value("resolvedStartSeconds"))
+                .andExpect(jsonPath("$.page.sortDir").value("asc"))
                 .andExpect(jsonPath("$.items.length()").value(2));
 
         mockMvc.perform(get("/v2/videos/{videoId}/snaps", UUID.fromString(videoId))
@@ -159,6 +163,9 @@ class SnapV2ControllerIntegrationTest {
                         .queryParam("attrValue", "999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.page.returned").value(1))
+                .andExpect(jsonPath("$.page.sortBy").value("createdAt"))
+                .andExpect(jsonPath("$.page.sortDir").value("desc"))
                 .andExpect(jsonPath("$.items[0].subject.attributes[0].stringValue").value("999"));
     }
 
@@ -246,6 +253,78 @@ class SnapV2ControllerIntegrationTest {
         // Order is by most recent activity, so assert the multiset of counts instead of positions.
         Assertions.assertTrue(snapCounts.contains(2));
         Assertions.assertTrue(snapCounts.contains(1));
+    }
+
+    @Test
+    void shouldPaginateAndSortMineEndpointsAndValidateInvalidSort() throws Exception {
+        // Prepare 3 snaps across 2 videos so pagination and aggregate sorting have deterministic values.
+        mockMvc.perform(post("/v2/snaps")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createSnapBody("https://example.com/video-p1.mp4", "operador-page", "p-1", "P-001", 430.0)))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/v2/snaps")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createSnapBody("https://example.com/video-p1.mp4", "operador-page", "p-2", "P-002", 431.0)))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/v2/snaps")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createSnapBody("https://example.com/video-p2.mp4", "operador-page", "p-3", "P-003", 432.0)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/v2/snaps/mine")
+                        .queryParam("nickname", "operador-page")
+                        .queryParam("offset", "1")
+                        .queryParam("limit", "1")
+                        .queryParam("sortBy", "createdAt")
+                        .queryParam("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nickname").value("operador-page"))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.page.offset").value(1))
+                .andExpect(jsonPath("$.page.limit").value(1))
+                .andExpect(jsonPath("$.page.returned").value(1))
+                .andExpect(jsonPath("$.page.hasMore").value(true))
+                .andExpect(jsonPath("$.page.sortBy").value("createdAt"))
+                .andExpect(jsonPath("$.page.sortDir").value("desc"))
+                .andExpect(jsonPath("$.items.length()").value(1));
+
+        mockMvc.perform(get("/v2/videos/mine")
+                        .queryParam("nickname", "operador-page")
+                        .queryParam("sortBy", "snapCount")
+                        .queryParam("sortDir", "desc")
+                        .queryParam("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.page.offset").value(0))
+                .andExpect(jsonPath("$.page.limit").value(1))
+                .andExpect(jsonPath("$.page.returned").value(1))
+                .andExpect(jsonPath("$.page.hasMore").value(true))
+                .andExpect(jsonPath("$.page.sortBy").value("snapCount"))
+                .andExpect(jsonPath("$.page.sortDir").value("desc"))
+                .andExpect(jsonPath("$.items[0].snapCount").value(2));
+
+        mockMvc.perform(get("/v2/snaps/search")
+                        .queryParam("subjectId", "p-1")
+                        .queryParam("sortBy", "invalido"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Unsupported sortBy: invalido")));
+    }
+
+    @Test
+    void shouldExposeRequestIdHeaderAndInternalHttpMetrics() throws Exception {
+        // Any API call should return a correlation header even when the client does not provide one.
+        mockMvc.perform(get("/v2/snaps/search").queryParam("subjectId", "nao-existe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists("X-Request-Id"));
+
+        // Internal observability endpoint should expose aggregated route metrics for HTTP traffic.
+        mockMvc.perform(get("/internal/observability/http-metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.generatedAt").isString())
+                .andExpect(jsonPath("$.totalRequests", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.routesCount", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.routes[?(@.routePattern == '/v2/snaps/search')].requests").exists());
     }
 
     @Test

@@ -43,6 +43,85 @@ public class SnapProperties {
     @NotBlank
     private String apiTokenHeader = "X-Assinatura-Token";
 
+    /**
+     * Feature flag for asynchronous snap creation (`POST /v2/snaps` returns `PENDING` and enqueues a job).
+     *
+     * <p>Disabled by default to preserve Entregas 1-3 behavior while Entrega 4 is introduced
+     * incrementally. When enabled, the worker (local polling) is responsible for FFmpeg execution.</p>
+     */
+    private boolean asyncCreateEnabled = false;
+
+    /**
+     * Enables the local DB-polling worker that processes `snap_processing_job`.
+     *
+     * <p>Kept separate from `asyncCreateEnabled` so tests/tools can enqueue jobs without running the
+     * scheduler automatically (manual triggering), and vice versa.</p>
+     */
+    private boolean workerEnabled = true;
+
+    /**
+     * Fixed delay between worker polling cycles (milliseconds).
+     */
+    private long workerPollDelayMs = 1000L;
+
+    /**
+     * Maximum number of jobs processed per polling cycle.
+     */
+    private int workerBatchSize = 1;
+
+    /**
+     * Maximum retry attempts for a job before final failure.
+     */
+    private int workerMaxAttempts = 3;
+
+    /**
+     * Delay before retrying a failed job (seconds).
+     */
+    private long workerRetryDelaySeconds = 10L;
+
+    /**
+     * Exponential backoff multiplier applied on retries (`baseDelay * multiplier^(attempt-1)`).
+     */
+    private double workerRetryBackoffMultiplier = 2.0d;
+
+    /**
+     * Upper bound for retry delay after exponential backoff (seconds).
+     */
+    private long workerRetryMaxDelaySeconds = 300L;
+
+    /**
+     * Marks `RUNNING` jobs as stale when no heartbeat/lock refresh is seen beyond this timeout.
+     *
+     * <p>Entrega 4 slice 2 uses this to recover jobs abandoned by crashes/restarts.</p>
+     */
+    private long workerLockTimeoutSeconds = 120L;
+
+    /**
+     * Enables periodic cleanup of terminal job rows (`COMPLETED`/`FAILED`) older than retention.
+     */
+    private boolean jobCleanupEnabled = true;
+
+    /**
+     * Fixed delay between cleanup cycles (milliseconds).
+     */
+    private long jobCleanupDelayMs = 60000L;
+
+    /**
+     * Retention for terminal job rows before cleanup (hours).
+     */
+    private long jobRetentionHours = 168L;
+
+    /**
+     * Maximum terminal jobs deleted per cleanup cycle.
+     */
+    private int jobCleanupBatchSize = 100;
+
+    /**
+     * Logical identifier of the worker instance, persisted in `lock_owner` for diagnostics.
+     */
+    @NotBlank
+    private String workerInstanceId = "local-worker";
+
     public String getDefaultAssinaturaCodigo() {
         return defaultAssinaturaCodigo;
     }
@@ -81,5 +160,117 @@ public class SnapProperties {
 
     public void setApiTokenHeader(String apiTokenHeader) {
         this.apiTokenHeader = apiTokenHeader;
+    }
+
+    public boolean isAsyncCreateEnabled() {
+        return asyncCreateEnabled;
+    }
+
+    public void setAsyncCreateEnabled(boolean asyncCreateEnabled) {
+        this.asyncCreateEnabled = asyncCreateEnabled;
+    }
+
+    public boolean isWorkerEnabled() {
+        return workerEnabled;
+    }
+
+    public void setWorkerEnabled(boolean workerEnabled) {
+        this.workerEnabled = workerEnabled;
+    }
+
+    public long getWorkerPollDelayMs() {
+        return workerPollDelayMs;
+    }
+
+    public void setWorkerPollDelayMs(long workerPollDelayMs) {
+        this.workerPollDelayMs = workerPollDelayMs;
+    }
+
+    public int getWorkerBatchSize() {
+        return workerBatchSize;
+    }
+
+    public void setWorkerBatchSize(int workerBatchSize) {
+        this.workerBatchSize = workerBatchSize;
+    }
+
+    public int getWorkerMaxAttempts() {
+        return workerMaxAttempts;
+    }
+
+    public void setWorkerMaxAttempts(int workerMaxAttempts) {
+        this.workerMaxAttempts = workerMaxAttempts;
+    }
+
+    public long getWorkerRetryDelaySeconds() {
+        return workerRetryDelaySeconds;
+    }
+
+    public void setWorkerRetryDelaySeconds(long workerRetryDelaySeconds) {
+        this.workerRetryDelaySeconds = workerRetryDelaySeconds;
+    }
+
+    public double getWorkerRetryBackoffMultiplier() {
+        return workerRetryBackoffMultiplier;
+    }
+
+    public void setWorkerRetryBackoffMultiplier(double workerRetryBackoffMultiplier) {
+        this.workerRetryBackoffMultiplier = workerRetryBackoffMultiplier;
+    }
+
+    public long getWorkerRetryMaxDelaySeconds() {
+        return workerRetryMaxDelaySeconds;
+    }
+
+    public void setWorkerRetryMaxDelaySeconds(long workerRetryMaxDelaySeconds) {
+        this.workerRetryMaxDelaySeconds = workerRetryMaxDelaySeconds;
+    }
+
+    public long getWorkerLockTimeoutSeconds() {
+        return workerLockTimeoutSeconds;
+    }
+
+    public void setWorkerLockTimeoutSeconds(long workerLockTimeoutSeconds) {
+        this.workerLockTimeoutSeconds = workerLockTimeoutSeconds;
+    }
+
+    public boolean isJobCleanupEnabled() {
+        return jobCleanupEnabled;
+    }
+
+    public void setJobCleanupEnabled(boolean jobCleanupEnabled) {
+        this.jobCleanupEnabled = jobCleanupEnabled;
+    }
+
+    public long getJobCleanupDelayMs() {
+        return jobCleanupDelayMs;
+    }
+
+    public void setJobCleanupDelayMs(long jobCleanupDelayMs) {
+        this.jobCleanupDelayMs = jobCleanupDelayMs;
+    }
+
+    public long getJobRetentionHours() {
+        return jobRetentionHours;
+    }
+
+    public void setJobRetentionHours(long jobRetentionHours) {
+        this.jobRetentionHours = jobRetentionHours;
+    }
+
+    public int getJobCleanupBatchSize() {
+        return jobCleanupBatchSize;
+    }
+
+    public void setJobCleanupBatchSize(int jobCleanupBatchSize) {
+        this.jobCleanupBatchSize = jobCleanupBatchSize;
+    }
+
+    public String getWorkerInstanceId() {
+        return workerInstanceId;
+    }
+
+    public void setWorkerInstanceId(String workerInstanceId) {
+        this.workerInstanceId = workerInstanceId;
     }
 }

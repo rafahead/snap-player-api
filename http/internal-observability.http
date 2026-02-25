@@ -1,0 +1,39 @@
+### Snap Player API - Observabilidade (Entregas 3 e 4)
+### ---------------------------------------------------------------------------
+### Este arquivo cobre endpoints internos de observabilidade e exemplos
+### para validar correlação por `X-Request-Id` e telemetria do worker async.
+###
+### Endpoints internos:
+### - `GET /internal/observability/http-metrics`
+### - `GET /internal/observability/snap-job-metrics`
+###
+### O endpoint retorna agregados por `método + rota` (pattern do Spring),
+### incluindo contagem, erros e latência média/máxima.
+###
+### O snapshot de jobs retorna contadores de worker (`claimed`, `retryScheduled`,
+### `staleRecovered`, `cleanupDeleted`), totais terminais (`completed`, `failed`)
+### e latência terminal média/máxima.
+
+@baseUrl = http://127.0.0.1:8080
+@assinaturaCodigo = default
+
+### GET HTTP Metrics Snapshot (interno)
+GET {{baseUrl}}/internal/observability/http-metrics
+X-Request-Id: observability-metrics-001
+
+### GET Snap Job Metrics Snapshot (interno / Entrega 4 slice 2-3)
+### Dica: rode fluxo async em `http/v2-snaps.http` antes, para popular os contadores.
+GET {{baseUrl}}/internal/observability/snap-job-metrics
+X-Request-Id: observability-snap-job-metrics-001
+
+### GET Sample Request to Generate Traffic (search)
+### Rode esta chamada algumas vezes e depois execute `GET HTTP Metrics Snapshot`
+### para ver a rota `/v2/snaps/search` aparecer/atualizar nos agregados.
+GET {{baseUrl}}/v2/snaps/search?subjectId=demo-subject&offset=0&limit=5
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: observability-traffic-001
+
+### GET Sample Error to Validate Error Logging + Metrics 4xx
+GET {{baseUrl}}/v2/snaps/search?attrKey=brinco
+X-Assinatura-Codigo: {{assinaturaCodigo}}
+X-Request-Id: observability-error-001

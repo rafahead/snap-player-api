@@ -12,6 +12,7 @@ import java.util.UUID;
 public record VideoSnapsResponse(
         UUID videoId,
         int total,
+        PageMetaResponse page,
         List<SnapResponse> items
 ) {
 }
