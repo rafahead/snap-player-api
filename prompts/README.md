@@ -10,6 +10,31 @@ Organizar os arquivos de planejamento/prompt como documentação viva (`docs-as-
 
 Este diretório é a base de planejamento do projeto e deve ser mantido coerente com o código.
 
+## Conceitos de organização (camadas)
+
+### 1. Fontes de verdade (conceitos)
+
+- `master-tecnico*` -> arquitetura, componentes, limites técnicos
+- `master-produto*` -> domínio, regras de negócio, fluxos de produto
+
+### 2. Plano de execução (tático)
+
+- `entregas*` -> sequenciamento por entrega, escopo, prioridade, critérios de aceite
+
+### 3. Decisões estruturais (memória de longo prazo)
+
+- `adrs/` -> decisões estáveis que impactam direção do projeto
+
+### 4. Estudos e integração (apoio)
+
+- `mvp*`, `*-integracao*`, estudos específicos -> validações e planos auxiliares
+
+Regra prática:
+- conceito vai para `master`
+- sequência de implementação vai para `entregas`
+- decisão estrutural vai para `ADR`
+- experimento/estudo vai para plano separado
+
 ## Mapa dos arquivos (estado atual)
 
 ### Planos mestres (fontes de verdade)
@@ -21,6 +46,12 @@ Este diretório é a base de planejamento do projeto e deve ser mantido coerente
 - `prompts/master-produto-snap.md`
   - **Master Produto (Snap-first)**
   - domínio (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`), regras de produto, API conceitual
+
+### Template padrão de inicialização (reutilizável)
+
+- `prompts/template-app.md`
+  - prompt base para iniciar novos projetos/apps com esta metodologia
+  - define estrutura de `prompts/`, conceitos de organização e sequência de bootstrap
 
 ### Planos de execução
 
@@ -51,6 +82,7 @@ Este diretório é a base de planejamento do projeto e deve ser mantido coerente
 
 - `master-tecnico.md` = `Master Técnico`
 - `master-produto-snap.md` = `Master Produto`
+- `template-app.md` = `Template App` / `Prompt de Bootstrap`
 - `entregas-api-snap-v2.md` = `Plano de Entregas`
 - `mvp-tecnico.md` = `Plano MVP`
 - `player-integracao.md` = `Plano Player`
@@ -137,6 +169,13 @@ Quando surgir uma mudança:
 ### Mudança de prazo/escopo sem impacto conceitual
 
 1. `entregas-api-snap-v2.md`
+
+### Novo projeto / novo app (bootstrap)
+
+1. `template-app.md` (gerar estrutura e rascunhos iniciais)
+2. `master-*` (produto/técnico)
+3. `entregas-*`
+4. ADRs iniciais (se houver decisões estruturais)
 
 ## ADRs (como usar)
 

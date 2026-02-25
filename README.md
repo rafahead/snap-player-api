@@ -1,15 +1,48 @@
-# Odd Video Frames API
+# Snap Player API
 
 API para extracao de frames e snapshot de video com FFmpeg, com foco em um contrato generico de metadados (`subject`) para reutilizacao em diferentes dominios.
+
+## Resumo de Planejamento (Prompts)
+
+Este repositorio usa os arquivos em `prompts/` como documentacao viva (`docs-as-code`).
+
+Fontes de verdade:
+- `prompts/master-tecnico.md`: arquitetura técnica alvo (assíncrona, worker, PostgreSQL/Flyway, S3, FFmpeg/FFprobe, consultas por `subject`)
+- `prompts/master-produto-snap.md`: modelo de produto `Snap`-first (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`, regras de colaboração)
+- `prompts/entregas-api-snap-v2.md`: sequenciamento por entregas (o que entra em cada fase)
+- `prompts/adrs/`: decisões estruturais estáveis (ADRs)
+
+ADRs já aceitos (resumo):
+- `Snap` é a entidade principal do produto
+- fase inicial da API v2 é síncrona (reaproveitando o MVP)
+- single domain com isolamento lógico por `assinatura_id`
+- template padrão por assinatura + fallback de `subject.id = snapId`
+
+Fases/entregas planejadas (API):
+- `Entrega 1`: API `Snap`-first síncrona (sem player, sem auth, storage local)
+- `Entrega 2`: compartilhamento público + listas `mine`
+- `Entrega 3`: base para multi-assinatura/token/paginação/observabilidade
+- `Entrega 4`: migração para processamento assíncrono com worker/DB
+
+Regra de atualização dos planos:
+1. atualizar `master` correto (`técnico` ou `produto`)
+2. atualizar `entregas`
+3. registrar ADR se a decisão for estrutural
+4. só depois refletir no código
 
 ## Estado do Projeto
 
 - `MVP` implementado (sincrono, local, sem banco/S3)
+- `Entrega 1` da API `v2` implementada (Snap-first síncrona com persistência local em banco + Flyway)
+- `Entrega 2` da API `v2` implementada (share público + listas `mine`)
+- `Entrega 3` (parcial) iniciada: contexto de `assinatura` formalizado + validação opcional por token (feature flag)
 - `Master plan` documentado para evolucao assíncrona com PostgreSQL, workers e storage S3
 
 Arquivos de plano:
 - `prompts/mvp-tecnico.md`
 - `prompts/master-tecnico.md`
+- `prompts/master-produto-snap.md`
+- `prompts/entregas-api-snap-v2.md`
 
 ## O Que o MVP Faz
 
@@ -97,17 +130,172 @@ mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 Se precisar de `fps` maior que o limite padrao:
 
 ```bash
-mvn -Dmaven.repo.local=.m2/repository spring-boot:run '-Dspring-boot.run.arguments=--app.mvp.maxFps=30'
+mvn -Dmaven.repo.local=.m2/repository spring-boot:run '-Dspring-boot.run.arguments=--app.processing.maxFps=30'
 ```
 
 ## Endpoint MVP
 
-- `POST /v1/video-frames/mvp/process`
+- `POST /v1/video-frames/process` (canônico atual)
+- `POST /v1/video-frames/mvp/process` (alias legado compatível)
+
+## Entrega 1 (API v2 Snap-first síncrona)
+
+Implementado nesta fase:
+- `POST /v2/snaps` (criação síncrona de snap, com `videoId` ou `videoUrl`)
+- `GET /v2/snaps/{snapId}` (consulta detalhada)
+- `GET /v2/videos/{videoId}/snaps` (listagem por vídeo, filtro opcional `nickname`)
+- `GET /v2/snaps/search` (busca básica por `subjectId` e/ou `attrKey` + `attrValue` string)
+- Persistência com Flyway/JPA para:
+  - `assinatura` (seed `default`)
+  - `subject_template` (seed `default`)
+  - `usuario`
+  - `video`
+  - `snap`
+  - `snap_subject_attr`
+
+Regras aplicadas na Entrega 1:
+- assinatura ativa fixa: `default`
+- template padrão por assinatura (fallback automático)
+- fallback de `subject.id` para `snapId` quando ausente
+- processamento síncrono reaproveitando o pipeline do MVP (`ffprobe` + `ffmpeg`)
+- storage local (paths persistidos no `snap`)
+
+### Banco padrão local (dev)
+
+Por padrão a aplicação sobe com `H2` file-based + `Flyway`:
+- `spring.datasource.url=jdbc:h2:file:./.data/snapplayerapi;MODE=PostgreSQL;...`
+- `app.processing.tmpBase=./.data/tmp/video-frames-processing` (diretório local gravável por padrão)
+
+Isso permite testar a `v2` sem configurar PostgreSQL de imediato.
+
+### Exemplo `POST /v2/snaps`
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/v2/snaps \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "videoUrl": "https://appimagens.br-gru-1.linodeobjects.com/57_36081920_20250220T170651_9eb0.mp4",
+    "nickname": "operador1",
+    "email": "operador1@example.com",
+    "dataFilmagem": "2026-02-24T14:30:00-03:00",
+    "startFrame": 360,
+    "durationSeconds": 1.0,
+    "snapshotDurationSeconds": 2.0,
+    "fps": 5,
+    "maxWidth": 640,
+    "format": "jpg",
+    "quality": 10,
+    "subject": {
+      "attributes": [
+        { "key": "brinco", "type": "string", "stringValue": "12334234534" },
+        { "key": "peso", "type": "number", "numberValue": 450.0 },
+        { "key": "observacoes", "type": "string", "stringValue": "animal agitado" }
+      ]
+    },
+    "overlay": {
+      "enabled": true,
+      "mode": "SUBJECT",
+      "position": "TOP_RIGHT"
+    }
+  }'
+```
+
+Observacao:
+- no exemplo acima, `subject.id` foi omitido propositalmente; a API usa `snapId` como fallback.
+
+### Smoke test manual (Entrega 1)
+
+Smoke executado em `2026-02-25` (UTC `2026-02-25T21:21:46Z`) com validação ponta a ponta da `v2`.
+
+Cenário usado:
+- ambiente local com `ffmpeg`/`ffprobe` instalados
+- vídeo MP4 real local (gerado via `ffmpeg`) servido por `http.server` na mesma sessão de execução
+- app subida em `8081` com `H2` em memória apenas para o smoke
+
+Endpoints validados no smoke:
+- `POST /v2/snaps` -> `200` (`status=COMPLETED`, `frameCount=5`)
+- `GET /v2/snaps/{snapId}` -> `200`
+- `GET /v2/videos/{videoId}/snaps?nickname=smoke-user` -> `200` (`total=1`)
+- `GET /v2/snaps/search?attrKey=brinco&attrValue=SMK-001` -> `200` (`total=1`)
+
+Evidências observadas:
+- fallback de `subject.id` confirmado (`subject.id == snapId`)
+- `videoProbe.compatible=true` para MP4/H.264 local
+- `snapshot.mp4` e `frame_00001.jpg`..`frame_00005.jpg` gerados em `./.data/tmp/video-frames-processing/...`
+
+Script de apoio (smoke automatizado local):
+- `tmp/smoke/run_v2_smoke.sh`
+
+Observações de ambiente:
+- no sandbox padrão deste agente, abrir sockets locais (`http.server`) pode falhar com `PermissionError`; o smoke foi executado fora do sandbox para validar `localhost`
+- durante o smoke foi identificado e corrigido um problema de configuração local: `app.processing.tmpBase` apontava para `/data/...` (não gravável no ambiente) e passou a usar `./.data/tmp/video-frames-processing` por padrão
+
+## Entrega 2 (Compartilhamento + listas "mine")
+
+Implementado nesta fase:
+- `POST /v2/snaps/{snapId}/share` (gera ou reutiliza `publicShareToken`, resposta idempotente)
+- `GET /public/snaps/{token}` (retorno público com clip/frames e metadados públicos do snap)
+- `GET /v2/snaps/mine?nickname=...` (lista snaps por `nickname` na assinatura ativa)
+- `GET /v2/videos/mine?nickname=...` (lista vídeos com atividade do usuário, agregando `snapCount`)
+
+Regras aplicadas na Entrega 2:
+- compartilhamento público depende de token aleatório (`UUID` sem hífens) persistido em `snap.public_share_token`
+- `POST /share` é idempotente (mesmo snap retorna o mesmo token se já estiver público)
+- `GET /public/snaps/{token}` só retorna snaps com `is_public=true`
+- listas `mine` continuam usando `nickname` como identidade temporária (antes de auth/token por assinatura)
+- `/v2/videos/mine` ordena por atividade mais recente e agrega quantidade de snaps por vídeo
+
+Observações de contrato:
+- `POST /v2/snaps/{snapId}/share` retorna `publicUrl` relativo por padrão (ex.: `/public/snaps/{token}`)
+- para URL absoluta, configurar `app.snap.publicBaseUrl`
+
+Cobertura de testes (integração):
+- fluxo share/public (`POST /share` + `GET /public/snaps/{token}`)
+- listas `mine` (`/v2/snaps/mine` e `/v2/videos/mine`)
+- erros principais (`token` público inexistente, `nickname` em branco)
+
+## Entrega 3 (parcial) - Contexto de assinatura + preparação para token
+
+Item 1 implementado (sem quebrar contrato):
+- endpoints `/v2/*` agora aceitam header opcional `X-Assinatura-Codigo`
+- quando o header não é enviado, a API mantém fallback para `default`
+- quando o header é enviado com código inexistente, a API retorna `404` (`Assinatura not found: ...`)
+
+Item 2 implementado (feature flag / stub de auth por token):
+- validação opcional de token por assinatura nas rotas privadas `/v2/*`
+- header de token: `X-Assinatura-Token`
+- quando `app.snap.requireApiToken=false` (padrão), o header é ignorado (compatível com Entregas 1-2)
+- quando `app.snap.requireApiToken=true`, a API exige token que corresponda a `assinatura.api_token`
+- falhas de token retornam `401` (`Assinatura API token required` / `Invalid assinatura API token`)
+- endpoints públicos (`/public/*`) permanecem sem token
+
+Objetivo deste passo:
+- formalizar o contexto de assinatura no request agora
+- preparar o terreno para autenticação por token de assinatura na próxima etapa
+
+Exemplo (compatível com o comportamento atual):
+
+```bash
+curl -sS http://127.0.0.1:8080/v2/snaps/search \
+  -H 'X-Assinatura-Codigo: default' \
+  --get \
+  --data-urlencode 'subjectId=animal-123'
+```
+
+Exemplo com token (feature flag ligada):
+
+```bash
+curl -sS http://127.0.0.1:8080/v2/snaps/search \
+  -H 'X-Assinatura-Codigo: default' \
+  -H 'X-Assinatura-Token: dev-default-token' \
+  --get \
+  --data-urlencode 'subjectId=animal-123'
+```
 
 ## Exemplo de Chamada (Com Overlay e Subject)
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8080/v1/video-frames/mvp/process \
+curl -sS -X POST http://127.0.0.1:8080/v1/video-frames/process \
   -H 'Content-Type: application/json' \
   -d '[
     {
@@ -205,7 +393,7 @@ Observacao: a compatibilidade real depende do FFmpeg instalado no ambiente.
 Exemplo:
 
 ```text
-/tmp/video-frames-mvp/
+/tmp/video-frames-processing/
   {requestId}/
     item-000/
       snapshot.mp4
@@ -219,18 +407,18 @@ Exemplo:
 Arquivo: `src/main/resources/application.yml`
 
 Principais chaves:
-- `app.mvp.tmpBase`
-- `app.mvp.maxBatchItems`
-- `app.mvp.maxSubjectAttributes`
-- `app.mvp.maxDurationSeconds`
-- `app.mvp.maxFps`
-- `app.mvp.maxWidth`
-- `app.mvp.acceptedContainers`
-- `app.mvp.ffmpeg.path`
-- `app.mvp.ffmpeg.timeoutSeconds`
-- `app.mvp.ffmpeg.fontFile`
-- `app.mvp.ffprobe.path`
-- `app.mvp.ffprobe.timeoutSeconds`
+- `app.processing.tmpBase`
+- `app.processing.maxBatchItems`
+- `app.processing.maxSubjectAttributes`
+- `app.processing.maxDurationSeconds`
+- `app.processing.maxFps`
+- `app.processing.maxWidth`
+- `app.processing.acceptedContainers`
+- `app.processing.ffmpeg.path`
+- `app.processing.ffmpeg.timeoutSeconds`
+- `app.processing.ffmpeg.fontFile`
+- `app.processing.ffprobe.path`
+- `app.processing.ffprobe.timeoutSeconds`
 
 ## Troubleshooting
 
@@ -256,7 +444,7 @@ Trocar fonte no startup:
 
 ```bash
 mvn -Dmaven.repo.local=.m2/repository spring-boot:run \
-  '-Dspring-boot.run.arguments=--app.mvp.ffmpeg.fontFile=/caminho/fonte.ttf'
+  '-Dspring-boot.run.arguments=--app.processing.ffmpeg.fontFile=/caminho/fonte.ttf'
 ```
 
 ### 3. Video incompatível
@@ -267,9 +455,9 @@ Veja no JSON de resposta:
 
 ## Estrutura do Projeto (Resumo)
 
-- `src/main/java/com/oddplayerapi/mvp/controller` - endpoint MVP
-- `src/main/java/com/oddplayerapi/mvp/service` - probe, ffmpeg, fluxo MVP, temp storage
-- `src/main/java/com/oddplayerapi/mvp/dto` - contratos JSON
+- `src/main/java/com/snapplayerapi/api/controller` - endpoints (v1 legado + v2)
+- `src/main/java/com/snapplayerapi/api/service` - probe, ffmpeg, fluxo síncrono legado, serviços v2
+- `src/main/java/com/snapplayerapi/api/dto` - contratos JSON base/legado
 - `src/main/resources/application.yml` - configuracao
 - `src/test/java` - testes unitarios
 - `prompts/mvp-tecnico.md` - plano MVP

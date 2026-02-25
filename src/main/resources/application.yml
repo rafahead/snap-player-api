@@ -1,10 +1,24 @@
 spring:
   application:
-    name: oddplayerapi-mvp
+    name: snap-player-api
+  datasource:
+    url: jdbc:h2:file:./.data/snapplayerapi;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
 
 app:
-  mvp:
-    tmpBase: /data/tmp/video-frames-mvp
+  processing:
+    # Default local temp storage for synchronous frame extraction/clip generation.
+    # Using a workspace-relative path keeps local dev/smoke runs functional without requiring a
+    # pre-mounted `/data` volume. Production can override via environment/config.
+    tmpBase: ./.data/tmp/video-frames-processing
     maxBatchItems: 10
     maxSubjectAttributes: 100
     maxDurationSeconds: 5
@@ -22,3 +36,13 @@ app:
     ffprobe:
       path: ffprobe
       timeoutSeconds: 30
+  snap:
+    defaultAssinaturaCodigo: default
+    defaultTemplateSlug: default
+    # Entrega 3 (step 2): token auth path prepared but disabled by default.
+    # When enabled, private `/v2/*` routes require header `X-Assinatura-Token` matching
+    # `assinatura.api_token` of the resolved tenant.
+    requireApiToken: false
+    # Optional absolute base URL used by `POST /v2/snaps/{id}/share`.
+    # When omitted, the API returns a relative `publicUrl` (e.g. `/public/snaps/{token}`).
+    publicBaseUrl:

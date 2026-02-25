@@ -1,4 +1,4 @@
-# Plano Master Consolidado (Prompt para Codex) - Odd Video Frames API
+# Plano Master Consolidado (Prompt para Codex) - Snap Player API
 
 **Stack:** Java 17 + Spring Boot 3.x + PostgreSQL + Flyway + Docker + FFmpeg (ProcessBuilder) + S3 (Linode Object Storage)
 
@@ -39,6 +39,22 @@ Implementar uma API escalável e assíncrona para processar um BATCH (lista) de 
    - Apagar pasta temporária do job ao final (sucesso/erro).
    - Scheduler de limpeza (1h) remove pastas antigas (ex: > 6h) para casos de crash.
    - Preferir `tmpBase` configurável e volume dedicado no Docker (`/data/tmp/video-frames`).
+
+7. **Documentação e comentários de código (Obrigatório)**
+   - Todo código novo/alterado deve ser **documentado e comentado detalhadamente**.
+   - Explicar intenção, regras de negócio, decisões de implementação, trade-offs e limitações.
+   - Em Java:
+     - usar JavaDoc em classes/serviços/endpoints públicos e métodos não triviais
+     - usar comentários inline em trechos complexos (validação, montagem de comando, persistência, concorrência)
+   - Em SQL/Flyway:
+     - nomear migrations de forma clara
+     - comentar blocos de schema/índices/constraints quando a intenção não for óbvia
+   - Em testes:
+     - nome dos testes deve descrever comportamento esperado
+     - comentários devem explicitar cenário, regra validada e motivo do teste
+   - Em `README` e documentação operacional:
+     - registrar endpoints, payloads, exemplos e observações relevantes sempre que houver funcionalidade nova
+   - Evitar comentários genéricos sem valor; priorizar explicações úteis para manutenção futura.
 
 ## Contratos de API (Endpoints)
 
@@ -710,5 +726,9 @@ Gere TODOS os arquivos do projeto (sem pseudo-código), garantindo que:
 - compile em Java 17,
 - rode via `docker-compose` sem ajustes manuais,
 - e cumpra integralmente os contratos JSON e critérios de aceite acima.
+
+Obrigatório em toda entrega:
+- documentar e comentar detalhadamente o código gerado/alterado (incluindo testes e documentação operacional),
+- deixando explícitas regras, decisões e limitações para manutenção futura.
 
 **FIM.**

@@ -11,7 +11,7 @@ Referências:
 
 ## Objetivo
 
-Documentar o estado atual do projeto Flutter `oddplayer` (`/home/rafahead/workspaces/flutter/oddplayer`) para planejar a unificação com a API `oddplayerapi` (MVP atual e plano master), sem alterar o app ainda.
+Documentar o estado atual do projeto Flutter `oddplayer` (`/home/rafahead/workspaces/flutter/oddplayer`) para planejar a unificação com a API `snap-player-api` (MVP atual e plano master), sem alterar o app ainda.
 
 Este documento serve como base de conversa para:
 - definir o papel do player na arquitetura final
@@ -102,7 +102,7 @@ O app já resolve bem a camada de inspeção visual frame-a-frame local/remota, 
 - Sem persistência local de sessão/últimos vídeos.
 - Teste automatizado não cobre a interface real.
 
-## Como este player pode se integrar ao `oddplayerapi`
+## Como este player pode se integrar ao `snap-player-api`
 
 ### Papel sugerido do player no ecossistema
 
@@ -148,7 +148,7 @@ Separar `lib/main.dart` em módulos:
 ### Fase 2 (cliente MVP)
 
 Adicionar:
-- cliente HTTP para `oddplayerapi`
+- cliente HTTP para `snap-player-api`
 - modelos de request/response do MVP (`subject`, `videoProbe`, `frames`, `snapshotVideo`)
 - tela de envio/processamento
 - tela de resultado (snapshot + frames)
@@ -210,6 +210,6 @@ O player não deve mais modelar domínio fixo no contrato (ex.: `brinco`, `peso`
 
 ## Entregável esperado desta etapa
 
-- Este `player-integracao.md` documenta o estado atual do app Flutter e propõe uma rota de integração com `oddplayerapi`.
+- Este `player-integracao.md` documenta o estado atual do app Flutter e propõe uma rota de integração com `snap-player-api`.
 - Nenhuma alteração foi feita no projeto Flutter nesta etapa.
 - Próximo passo é definir o papel do player (cliente MVP vs cliente master) e então atualizar o plano de unificação.

@@ -173,6 +173,7 @@ Reaproveitar/adaptar:
 - `subject.id` ausente recebe `snapId`.
 - `GET /v2/snaps/{snapId}` retorna o snap completo.
 - `GET /v2/videos/{videoId}/snaps` retorna todos os snaps do vídeo (com filtro por `nickname` opcional).
+- Código novo/alterado da entrega está documentado e comentado detalhadamente (incluindo testes e README).
 
 ## Entrega 2 - Compartilhamento + listas de usuário
 
@@ -277,6 +278,7 @@ Total para v1 síncrona muito boa (sem player, sem auth completa):
 - busca básica por subject (ou `subjectId` mínimo)
 - testes de serviço e controller
 - smoke test com vídeo real
+- documentação/README atualizados e comentários detalhados no código da entrega
 
 ## Checklist Entrega 2
 

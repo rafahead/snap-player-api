@@ -1,4 +1,4 @@
-# Plano MVP (Prompt para Codex) - Odd Video Frames API
+# Plano MVP (Prompt para Codex) - Snap Player API
 
 ## Papel deste arquivo (Plano MVP técnico)
 
