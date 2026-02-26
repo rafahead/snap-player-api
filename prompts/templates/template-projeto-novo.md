@@ -22,10 +22,9 @@ Criar a base de planejamento do projeto em `prompts/`, com estrutura, conceitos 
 
 Ao usar este prompt, o assistente deve produzir (ou propor) a estrutura inicial:
 
-- `prompts/masters/CONTEXT-CONFIG.md` — regras de formato de resposta da IA (conteúdo fixo)
-- `prompts/masters/CONTEXT.md` — ponto de entrada da sessão
+- `prompts/CONTEXT.md` — ponto de entrada da sessão
 - `prompts/masters/master-tecnico.md` — arquitetura, stack, processamento, infra
-- `prompts/masters/master-produto-<slug>.md` — domínio, regras de negócio, API conceitual
+- `prompts/masters/master-produto.md` — domínio, regras de negócio, API conceitual
 - `prompts/masters/master-roadmap.md` — entregas, slices, critérios de aceite
 - `prompts/masters/master-adrs.md` — governança de ADRs (critérios, template, índice)
 - `prompts/adrs/0000-template.md` — template padrão de ADR
@@ -94,10 +93,9 @@ Quando surgir mudança:
 prompts/
   README.md                         # governança: mapa, regras, workflows, exemplos
   masters/
-    CONTEXT-CONFIG.md               # regras de formato de resposta da IA (conteúdo fixo)
     CONTEXT.md                      # ponto de entrada da sessão
     master-tecnico.md               # fonte de verdade técnica
-    master-produto-<slug>.md        # fonte de verdade de produto/domínio
+    master-produto.md        # fonte de verdade de produto/domínio
     master-roadmap.md               # execução por entregas (slices, critérios de aceite)
     master-adrs.md                  # governança de ADRs (critérios, template, índice)
     master-monetizacao.md           # (opcional) estratégia comercial
@@ -107,14 +105,14 @@ prompts/
     000N-<slug-da-decisao>.md       # ADRs reais
   templates/
     howto-metodologia.md            # guia completo de uso da metodologia
-    template-app.md                 # este arquivo
+    template-projeto-novo.md                 # este arquivo
   estudos/                          # (opcional) experimentos, integrações pontuais
 ```
 
 ## Convenções de nomenclatura
 
 - `master-tecnico.md` — sempre este nome
-- `master-produto-<slug>.md` — slug curto e estável do produto
+- `master-produto.md` — slug curto e estável do produto
 - `master-roadmap.md` — sempre este nome (não versionar; editar in-place)
 - `master-adrs.md` — sempre este nome
 - `adrs/000X-<slug-da-decisao>.md` — número sequencial permanente
@@ -287,30 +285,8 @@ Ajustar se diferente:
 
 ## Conteúdo fixo obrigatório
 
-### CONTEXT-CONFIG.md (copiar exatamente — não alterar)
-
-```
-Utilize essas configurações de contexto:
-- gatilho preferencial para economia de tokens: `modo silencioso`
-- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
-- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
-- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
-- só o resultado, sem explicação
-- sem bullets/listas (exceto se eu pedir explicitamente)
-- não mostre alterações/exclusões/adições de código, texto ou arquivos
-- não mostre comando nem passo a passo
-- não mostre output "explored"
-- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
-- não repita trechos de arquivos lidos; use apenas o resumo final
-- se precisar, pergunte antes de detalhar
-- quando terminar um tópico, só apresente o resultado final da entrega
-- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
-- você tem autorização para rodar comandos
-- você tem acesso ao código-fonte do projeto
-- você tem acesso a arquivos de configuração e documentação
-- você tem acesso a arquivos de planejamento e estratégia
-- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios
-```
+> As regras de formato estão em `AGENTS.md` e `CLAUDE.md` (raiz) e embutidas no topo de `CONTEXT.md`.
+> Copiar esses arquivos de `prompts/templates/base/` — não precisam de edição.
 
 ### Seção obrigatória no topo do CONTEXT.md
 
@@ -337,16 +313,18 @@ Autorizações permanentes:
 
 ## Saída esperada do assistente
 
-1. Criar `prompts/masters/CONTEXT-CONFIG.md` com o conteúdo fixo acima.
-2. Criar `prompts/masters/CONTEXT.md` com a seção obrigatória no topo + estado inicial do projeto.
-3. Criar `prompts/masters/master-produto-<slug>.md` (rascunho inicial).
-4. Criar `prompts/masters/master-tecnico.md` (rascunho inicial, stack padrão pré-preenchido).
-5. Criar `prompts/masters/master-roadmap.md` com Entrega 1 e critérios de aceite.
-6. Criar `prompts/masters/master-adrs.md` (governança — copiar de snap-player-api, zerar índice).
-7. Criar `prompts/adrs/0000-template.md` e `prompts/adrs/README.md`.
-8. Criar `prompts/README.md` com governança, mapa e workflows.
-9. Sugerir ADRs iniciais para decisões já claras.
-10. Listar hipóteses e perguntas pendentes.
+1. Copiar `prompts/templates/base/AGENTS.md` → raiz do projeto
+2. Copiar `prompts/templates/base/CLAUDE.md` → raiz do projeto
+3. Copiar `prompts/templates/base/README.md` → raiz do projeto (substituir `{{VARIÁVEIS}}`)
+4. Copiar `prompts/templates/base/CONTEXT.md` → `prompts/CONTEXT.md` (substituir `{{VARIÁVEIS}}`)
+6. Copiar `prompts/templates/base/master-tecnico.md` → `prompts/masters/` (preencher stack e arquitetura)
+7. Copiar `prompts/templates/base/master-produto.md` → `prompts/masters/master-produto.md` (preencher domínio)
+8. Copiar `prompts/templates/base/master-roadmap.md` → `prompts/masters/` (definir Entrega 1)
+9. Copiar `prompts/templates/base/master-adrs.md` → `prompts/masters/` (substituir `{{SLUG}}` e `{{DATA}}`)
+10. Copiar `prompts/templates/base/adrs/` → `prompts/adrs/`
+11. Copiar `prompts/templates/base/prompts-README.md` → `prompts/README.md` (substituir `{{SLUG}}` e `{{MES_ANO}}`)
+12. Sugerir ADRs iniciais para decisões já claras.
+13. Listar hipóteses e perguntas pendentes.
 ```
 
 ## Observação de uso

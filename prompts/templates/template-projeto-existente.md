@@ -84,59 +84,22 @@ Ler e mapear:
 
 Criar em `prompts/`:
 
-1. `masters/CONTEXT-CONFIG.md` — conteúdo fixo obrigatório:
-
-```
-Utilize essas configurações de contexto:
-- gatilho preferencial para economia de tokens: `modo silencioso`
-- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
-- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
-- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
-- só o resultado, sem explicação
-- sem bullets/listas (exceto se eu pedir explicitamente)
-- não mostre alterações/exclusões/adições de código, texto ou arquivos
-- não mostre comando nem passo a passo
-- não mostre output "explored"
-- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
-- não repita trechos de arquivos lidos; use apenas o resumo final
-- se precisar, pergunte antes de detalhar
-- quando terminar um tópico, só apresente o resultado final da entrega
-- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
-- você tem autorização para rodar comandos
-- você tem acesso ao código-fonte do projeto
-- você tem acesso a arquivos de configuração e documentação
-- você tem acesso a arquivos de planejamento e estratégia
-- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios
+Antes de iniciar, copiar os arquivos base para o projeto:
+```bash
+cp prompts/templates/base/AGENTS.md            ./
+cp prompts/templates/base/CLAUDE.md            ./
+cp prompts/templates/base/
+cp prompts/templates/base/master-adrs.md       prompts/masters/
+cp prompts/templates/base/adrs/                prompts/adrs/
 ```
 
-2. `masters/CONTEXT.md` — seção obrigatória no topo + estado atual real extraído do código:
-
-```markdown
-## Formato de resposta (PRIORIDADE MÁXIMA — aplicar sempre)
-
-Gatilho ativo: `modo silencioso`
-
-Regras obrigatórias:
-- Sem updates intermediários nem mensagens de progresso (só em bloqueio crítico)
-- Só resultado final, em 1 linha — esta regra tem prioridade sobre qualquer outra de formatação
-- Sem explicações, sem bullets/listas (salvo pedido explícito)
-- Não exibir alterações/exclusões/adições de código, texto ou arquivos
-- Não exibir comandos nem passos executados
-- Não exibir logs, stacktrace, stdout/stderr, output de testes ou de ferramentas
-- Não repetir trechos de arquivos lidos; usar apenas o resumo final
-- Em caso de erro, responder apenas o bloqueio em 1 linha (sem logs)
-- Se precisar de informação, perguntar antes de detalhar
-
-Autorizações permanentes:
-- Rodar comandos
-- Acesso completo ao código-fonte, configurações, documentação e planejamento do projeto
-```
-3. `masters/master-tecnico.md` — arquitetura e stack conforme o código
-4. `masters/master-produto-<slug>.md` — domínio e regras conforme o código
-5. `masters/master-roadmap.md` — entregas concluídas + próximas prioridades
-6. `masters/master-adrs.md` — governança (copiar de snap-player-api, zerar índice)
-7. `adrs/0000-template.md` e `adrs/README.md` — copiar de snap-player-api
-8. `README.md` — governança adaptada ao projeto
+Depois criar (populado com estado real do código):
+1. `prompts/CONTEXT.md` — usar `base/CONTEXT.md` como base + estado real extraído do código
+2. `masters/master-tecnico.md` — usar `base/master-tecnico.md` como base + preencher com stack/arquitetura real
+3. `masters/master-produto.md` — usar `base/master-produto.md` como base + preencher com domínio real
+4. `masters/master-roadmap.md` — usar `base/master-roadmap.md` como base + marcar entregas concluídas e próximas prioridades
+5. `prompts/README.md` — usar `base/prompts-README.md` como base + adaptar ao projeto
+6. `README.md` raiz — usar `base/README.md` como base + preencher com stack e instruções reais
 
 ### Etapa 3 — Surfaçar decisões implícitas como ADRs candidatos
 
@@ -178,7 +141,7 @@ Ao final, o assistente deve ter produzido:
 
 | Situação | Template |
 |---|---|
-| Projeto novo, sem código | `template-app.md` |
+| Projeto novo, sem código | `template-projeto-novo.md` |
 | Projeto existente, sem `prompts/` | **este arquivo** |
 | Projeto existente, com `prompts/` parcial | **este arquivo** (o assistente ignora o que já existe e completa o que falta) |
 | Projeto existente, com `prompts/` completo mas desatualizado | `howto-metodologia.md` → seção "Checklist de qualidade" |

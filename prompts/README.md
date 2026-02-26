@@ -65,7 +65,7 @@ Regra prática:
   - inclui stack padrão pré-preenchido (Spring Boot, PostgreSQL, Linode, Flutter web, Linux service)
   - tabela rápida de workflows, checklist de qualidade
 
-- `prompts/templates/template-app.md`
+- `prompts/templates/template-projeto-novo.md`
   - prompt de bootstrap para **novos projetos** (sem código existente)
   - estrutura de `prompts/`, conceitos de organização, sequência de bootstrap
 
@@ -78,6 +78,19 @@ Regra prática:
   - para **projetos existentes onde não vale documentar o passado**
   - cria estrutura mínima e aplica a metodologia só a partir deste ponto
   - código legado não é auditado; documentado naturalmente quando tocado em novas entregas
+
+- `prompts/templates/base/` — **arquivos prontos para copiar para um novo projeto**
+  - `AGENTS.md` → raiz (copiar sem alterar)
+  - `CLAUDE.md` → raiz (copiar sem alterar)
+  - `CONTEXT.md` → `prompts/` (raiz de prompts/) (substituir `{{VARIÁVEIS}}`)
+  - `README.md` → raiz (substituir `{{VARIÁVEIS}}`)
+  - `master-tecnico.md` → `prompts/masters/` (preencher stack/arquitetura)
+  - `master-produto.md` → `prompts/masters/master-produto.md` (preencher domínio)
+  - `master-roadmap.md` → `prompts/masters/` (definir Entrega 1)
+  - `master-adrs.md` → `prompts/masters/` (substituir `{{SLUG}}` e `{{DATA}}`)
+  - `prompts-README.md` → `prompts/README.md` (substituir `{{SLUG}}` e `{{MES_ANO}}`)
+  - `adrs/0000-template.md` → `prompts/adrs/` (substituir `{{SLUG}}`)
+  - `adrs/README.md` → `prompts/adrs/` (copiar sem alterar)
 
 
 ### Planos de validação/experimentação
@@ -105,7 +118,7 @@ Regra prática:
 - `master-tecnico.md` = `Master Técnico`
 - `master-produto-snap.md` = `Master Produto`
 - `master-monetizacao.md` = `Master Monetização`
-- `template-app.md` = `Template App` / `Prompt de Bootstrap`
+- `template-projeto-novo.md` = `Template App` / `Prompt de Bootstrap`
 - `master-roadmap.md` = `Plano de Entregas`
 - `mvp-tecnico.md` = `Plano MVP`
 - `player-integracao.md` = `Plano Player`
@@ -252,13 +265,13 @@ Não cria ADR. Adiciona slice em `master-roadmap.md`:
 
 ### Novo projeto / novo app (bootstrap)
 
-1. `template-app.md` (gerar estrutura e rascunhos iniciais)
+1. `template-projeto-novo.md` (gerar estrutura e rascunhos iniciais)
 2. `master-*` (produto/técnico)
 3. `master-roadmap.md`
 4. ADRs iniciais (se houver decisões estruturais)
 
 > **Exemplo:** novo módulo de inspeção industrial derivado do snap-player-api.
-> → Usa `template-app.md` para gerar estrutura de `prompts/`.
+> → Usa `template-projeto-novo.md` para gerar estrutura de `prompts/`.
 > → Cria `master-tecnico.md` e `master-produto.md` do novo módulo.
 > → Define primeiras entregas em `master-roadmap.md`.
 > → Registra ADR de multi-tenancy se a decisão for diferente do snap-player-api.
@@ -359,7 +372,7 @@ Estrutura em uso:
   - `mvp-tecnico.md`
   - `player-integracao.md`
 - `prompts/templates/`
-  - `template-app.md`
+  - `template-projeto-novo.md`
 
 ### Estratégia para próximas reorganizações (se necessário)
 

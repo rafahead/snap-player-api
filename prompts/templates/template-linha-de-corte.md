@@ -10,7 +10,7 @@ Diferença dos outros templates:
 
 | Template | Quando usar |
 |---|---|
-| `template-app.md` | Projeto novo, sem código |
+| `template-projeto-novo.md` | Projeto novo, sem código |
 | `template-projeto-existente.md` | Projeto existente — quero documentar o que já existe |
 | **este arquivo** | Projeto existente — quero ignorar o passado e aplicar a metodologia daqui em diante |
 
@@ -60,70 +60,33 @@ Quero apenas criar a estrutura `prompts/` mínima para aplicar a metodologia daq
 Se houver alguma decisão recente ou futura que vale documentar como ADR:
 - Decisão:
 
-## Conteúdo fixo obrigatório
+## Arquivos base a copiar antes de iniciar
 
-### CONTEXT-CONFIG.md (copiar exatamente — não alterar)
-
-```
-Utilize essas configurações de contexto:
-- gatilho preferencial para economia de tokens: `modo silencioso`
-- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
-- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
-- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
-- só o resultado, sem explicação
-- sem bullets/listas (exceto se eu pedir explicitamente)
-- não mostre alterações/exclusões/adições de código, texto ou arquivos
-- não mostre comando nem passo a passo
-- não mostre output "explored"
-- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
-- não repita trechos de arquivos lidos; use apenas o resumo final
-- se precisar, pergunte antes de detalhar
-- quando terminar um tópico, só apresente o resultado final da entrega
-- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
-- você tem autorização para rodar comandos
-- você tem acesso ao código-fonte do projeto
-- você tem acesso a arquivos de configuração e documentação
-- você tem acesso a arquivos de planejamento e estratégia
-- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios
-```
-
-### Seção obrigatória no topo do CONTEXT.md
-
-```markdown
-## Formato de resposta (PRIORIDADE MÁXIMA — aplicar sempre)
-
-Gatilho ativo: `modo silencioso`
-
-Regras obrigatórias:
-- Sem updates intermediários nem mensagens de progresso (só em bloqueio crítico)
-- Só resultado final, em 1 linha — esta regra tem prioridade sobre qualquer outra de formatação
-- Sem explicações, sem bullets/listas (salvo pedido explícito)
-- Não exibir alterações/exclusões/adições de código, texto ou arquivos
-- Não exibir comandos nem passos executados
-- Não exibir logs, stacktrace, stdout/stderr, output de testes ou de ferramentas
-- Não repetir trechos de arquivos lidos; usar apenas o resumo final
-- Em caso de erro, responder apenas o bloqueio em 1 linha (sem logs)
-- Se precisar de informação, perguntar antes de detalhar
-
-Autorizações permanentes:
-- Rodar comandos
-- Acesso completo ao código-fonte, configurações, documentação e planejamento do projeto
+```bash
+cp prompts/templates/base/AGENTS.md            ./
+cp prompts/templates/base/CLAUDE.md            ./
+cp prompts/templates/base/
+cp prompts/templates/base/CONTEXT.md           prompts/           # preencher {{VARIÁVEIS}}
+cp prompts/templates/base/master-tecnico.md    prompts/masters/   # preencher stack
+cp prompts/templates/base/master-produto.md prompts/masters/master-produto.md
+cp prompts/templates/base/master-roadmap.md    prompts/masters/   # só próximas prioridades
+cp prompts/templates/base/master-adrs.md       prompts/masters/   # substituir {{SLUG}} e {{DATA}}
+cp prompts/templates/base/adrs/                prompts/adrs/
+cp prompts/templates/base/prompts-README.md    prompts/README.md
+cp prompts/templates/base/README.md            ./README.md        # preencher {{VARIÁVEIS}}
 ```
 
 ## Saída esperada do assistente
 
-Criar apenas:
+Com base nas entradas preenchidas acima e nos arquivos base copiados, preencher apenas:
 
-1. `prompts/masters/CONTEXT-CONFIG.md` — conteúdo fixo acima
-2. `prompts/masters/CONTEXT.md` — seção obrigatória no topo + resumo mínimo do estado atual + próximas prioridades
-3. `prompts/masters/master-tecnico.md` — stack e arquitetura em tópicos curtos (sem detalhar implementação existente)
-4. `prompts/masters/master-produto-<slug>.md` — objetivo e entidades principais em tópicos curtos
-5. `prompts/masters/master-roadmap.md` — só as próximas entregas (sem registrar histórico)
-6. `prompts/masters/master-adrs.md` — governança padrão + ADRs informados nas entradas (se houver)
-7. `prompts/adrs/0000-template.md` e `prompts/adrs/README.md`
-8. `prompts/README.md` — governança mínima
+1. `prompts/CONTEXT.md` — estado atual mínimo + próximas prioridades
+2. `prompts/masters/master-tecnico.md` — stack e arquitetura em tópicos curtos
+3. `prompts/masters/master-produto.md` — objetivo e entidades principais
+4. `prompts/masters/master-roadmap.md` — só próximas entregas (sem histórico)
+5. ADRs informados nas entradas (se houver)
 
-Não criar: estudos, análise do código existente, ADRs retroativos não solicitados.
+Não fazer: auditoria do código existente, ADRs retroativos não solicitados, análise de dívidas.
 ```
 
 ---

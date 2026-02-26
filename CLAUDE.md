@@ -1,4 +1,4 @@
-# AGENTS.md
+# CLAUDE.md
 
 ## Formato de resposta (PRIORIDADE MÁXIMA — aplicar sempre)
 

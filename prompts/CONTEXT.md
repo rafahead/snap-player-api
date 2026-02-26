@@ -59,6 +59,9 @@ Anthropic API · análise diferencial · laudo automático · snap_session · Pl
 
 | Arquivo | Papel |
 |---|---|
+| AGENTS.md | Regras de formato e padrões de código — Codex CLI (carregado automaticamente) |
+| CLAUDE.md | Regras de formato e padrões de código — Claude Code CLI (carregado automaticamente) |
+| README.md | Requisitos, build, run, endpoints principais |
 | prompts/masters/master-tecnico.md | Arquitetura, FFmpeg, storage, worker |
 | prompts/masters/master-produto-snap.md | Domínio, regras de produto, multi-assinatura |
 | prompts/masters/master-roadmap.md | Sequenciamento tático de entregas |

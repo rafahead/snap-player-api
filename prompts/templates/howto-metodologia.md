@@ -15,9 +15,8 @@ prompts/
   README.md                        # governança: mapa, regras, workflows, exemplos
   masters/
     CONTEXT.md                     # ponto de entrada da sessão — leia primeiro
-    CONTEXT-CONFIG.md              # regras de formato de resposta da IA
     master-tecnico.md              # arquitetura, stack, processamento, infra
-    master-produto-<slug>.md       # domínio, entidades, regras de negócio, API conceitual
+    master-produto.md       # domínio, entidades, regras de negócio, API conceitual
     master-roadmap.md              # sequenciamento de entregas, slices, critérios de aceite
     master-adrs.md                 # governança de ADRs: critérios, template, índice
     master-monetizacao.md          # (opcional) estratégia comercial, GTM, pricing
@@ -27,9 +26,42 @@ prompts/
     000N-<slug-da-decisao>.md      # ADRs reais
   templates/
     howto-metodologia.md           # este arquivo
-    template-app.md                # prompt de bootstrap para novos projetos
+    template-projeto-novo.md                # prompt de bootstrap para novos projetos
   estudos/                         # (opcional) experimentos, integrações, estudos pontuais
 ```
+
+---
+
+## O que copiar para um novo projeto
+
+Copiar a pasta `prompts/templates/` inteira para o novo repositório.
+`base/` contém todos os arquivos prontos para uso:
+
+| Arquivo em `base/` | Destino no novo projeto | Alterar? |
+|---|---|---|
+| `AGENTS.md` | `./AGENTS.md` (raiz) | Não |
+| `CLAUDE.md` | `./CLAUDE.md` (raiz) | Não |
+| `CONTEXT.md` | `prompts/CONTEXT.md` | Sim — substituir `{{VARIÁVEIS}}` |
+| `README.md` | `./README.md` (raiz) | Sim — substituir `{{VARIÁVEIS}}` |
+| `master-tecnico.md` | `prompts/masters/master-tecnico.md` | Sim — preencher stack/arquitetura |
+| `master-produto.md` | `prompts/masters/master-produto.md` | Sim — preencher domínio |
+| `master-roadmap.md` | `prompts/masters/master-roadmap.md` | Sim — definir Entrega 1 |
+| `master-adrs.md` | `prompts/masters/master-adrs.md` | Sim — substituir `{{SLUG}}` e `{{DATA}}` |
+| `prompts-README.md` | `prompts/README.md` | Sim — substituir `{{SLUG}}` e `{{MES_ANO}}` |
+| `adrs/0000-template.md` | `prompts/adrs/0000-template.md` | Sim — substituir `{{SLUG}}` |
+| `adrs/README.md` | `prompts/adrs/README.md` | Não |
+
+**Variáveis:**
+
+| Variável | Exemplo |
+|---|---|
+| `{{NOME_PROJETO}}` | `Meu App` |
+| `{{SLUG}}` | `meu-app` |
+| `{{MES_ANO}}` | `março 2026` |
+| `{{DATA}}` | `março 2026` |
+| `{{DESCRICAO_CURTA}}` | `API de gestão de pedidos` |
+| `{{CLIENTE}}` | `Empresa XYZ` |
+| `{{STACK_RESUMIDO}}` | `Java 17 + Spring Boot · PostgreSQL · Linode` |
 
 ---
 
@@ -41,35 +73,30 @@ prompts/
 mkdir -p prompts/masters prompts/adrs prompts/templates prompts/estudos
 ```
 
-### Passo 2 — Criar CONTEXT-CONFIG.md (conteúdo fixo — copiar sempre igual)
+### Passo 2 — Copiar arquivos base
 
-```
-prompts/masters/CONTEXT-CONFIG.md
+```bash
+# raiz do projeto
+cp prompts/templates/base/AGENTS.md                    ./
+cp prompts/templates/base/CLAUDE.md                    ./
+cp prompts/templates/base/README.md                    ./
+
+# prompts/masters/
+cp prompts/templates/base/CONTEXT.md                   prompts/
+cp prompts/templates/base/master-tecnico.md            prompts/masters/
+cp prompts/templates/base/master-produto.md       prompts/masters/master-produto.md
+cp prompts/templates/base/master-roadmap.md            prompts/masters/
+cp prompts/templates/base/master-adrs.md               prompts/masters/
+
+# prompts/adrs/
+cp prompts/templates/base/adrs/0000-template.md        prompts/adrs/
+cp prompts/templates/base/adrs/README.md               prompts/adrs/
+
+# prompts/
+cp prompts/templates/base/prompts-README.md            prompts/README.md
 ```
 
-Conteúdo:
-```
-Utilize essas configurações de contexto:
-- gatilho preferencial para economia de tokens: `modo silencioso`
-- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
-- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
-- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
-- só o resultado, sem explicação
-- sem bullets/listas (exceto se eu pedir explicitamente)
-- não mostre alterações/exclusões/adições de código, texto ou arquivos
-- não mostre comando nem passo a passo
-- não mostre output "explored"
-- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
-- não repita trechos de arquivos lidos; use apenas o resumo final
-- se precisar, pergunte antes de detalhar
-- quando terminar um tópico, só apresente o resultado final da entrega
-- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
-- você tem autorização para rodar comandos
-- você tem acesso ao código-fonte do projeto
-- você tem acesso a arquivos de configuração e documentação
-- você tem acesso a arquivos de planejamento e estratégia
-- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios
-```
+Substituir todas as `{{VARIÁVEIS}}` nos arquivos copiados (ver tabela acima).
 
 ### Passo 3 — Criar CONTEXT.md
 
@@ -81,7 +108,7 @@ Preencher com:
 - arquivos de referência (tabela)
 - governança dos planos
 
-> Usar o template em `prompts/templates/template-app.md` → seção "Saída esperada" como guia.
+> Usar o template em `prompts/templates/template-projeto-novo.md` → seção "Saída esperada" como guia.
 
 ### Passo 4 — Criar master-tecnico.md
 
@@ -121,7 +148,7 @@ Deploy (Linux service):
 - variáveis de ambiente: /etc/default/<app> ou EnvironmentFile= no unit
 ```
 
-### Passo 5 — Criar master-produto-<slug>.md
+### Passo 5 — Criar master-produto.md
 
 Seções mínimas:
 - Objetivo do produto
@@ -211,7 +238,7 @@ A partir deste ponto, seguir o workflow normal (seção abaixo).
 ### Início de sessão com IA
 
 1. Abrir o projeto
-2. Enviar ao Claude/Codex: `carregar prompts/masters/CONTEXT.md`
+2. Enviar ao Claude/Codex: `carregar prompts/CONTEXT.md`
 3. A partir daí, o modo silencioso e o contexto do projeto estão ativos
 
 ### Quando surgir qualquer mudança
@@ -261,7 +288,7 @@ Não criar ADR para: typos, correções óbvias, detalhes operacionais pontuais.
 - [ ] Decisões estruturais recentes viraram ADR?
 - [ ] Referências entre arquivos estão corretas (sem paths quebrados)?
 - [ ] `http/*.http` está atualizado com novos endpoints?
-- [ ] `CONTEXT-CONFIG.md` está presente e copiado corretamente?
+- [ ] `AGENTS.md` e `CLAUDE.md` estão na raiz do projeto?
 
 ---
 
