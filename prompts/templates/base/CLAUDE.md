@@ -19,9 +19,12 @@ Autorizações permanentes:
 - Rodar comandos
 - Acesso completo ao código-fonte, configurações, documentação e planejamento do projeto
 
-## Ponto de entrada
+## Inicialização de sessão
 
-Ao iniciar uma sessão, carregar `prompts/CONTEXT.md`.
+1. Carregar `prompts/CONTEXT.md`.
+2. Na primeira resposta da sessão, iniciar com uma linha de status:
+   `✓ {{SLUG}} · modo silencioso · trabalhando em: <conteúdo da seção "Trabalhando em" do CONTEXT.md>`
+3. Processar normalmente o pedido do usuário.
 
 ## Padrões de código
 
