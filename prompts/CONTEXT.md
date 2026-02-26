@@ -8,13 +8,13 @@ Plataforma genérica de evidência visual estruturada em vídeo (snap-player-api
 Cliente em produção: **Olho do Dono** — pesagem de bovinos, 30+ clientes.
 Repositórios: `snap-player-api` (este) + `snap-player` (Flutter, integração futura).
 
-**Stack:** Java 17 + Spring Boot 3.x · PostgreSQL + Flyway · Docker · FFmpeg/FFprobe via ProcessBuilder · S3 Linode (AWS SDK v2) · storage local em dev.
+**Stack:** Java 17 + Spring Boot 3.x · PostgreSQL + Flyway · Nginx + systemd (deploy atual em VM Ubuntu/Linode) · FFmpeg/FFprobe via ProcessBuilder · S3 Linode (AWS SDK v2) · storage local em dev · Docker (plano futuro opcional).
 
 ---
 
 ## Trabalhando em
 
-Entrega 6 — Hardening operacional (env vars, docker-compose.prod, health check)
+Entrega 6 — Hardening operacional + deploy em VM Ubuntu (env vars, Nginx/systemd, health check)
 
 ---
 
@@ -30,7 +30,7 @@ Entrega 6 — Hardening operacional (env vars, docker-compose.prod, health check
 
 ## Próximas prioridades (produção — Olho do Dono)
 
-1. **Hardening operacional** — env vars para segredos, docker-compose.prod, health check, limites CPU/mem (Linode 2GB)
+1. **Hardening operacional** — env vars para segredos, deploy em VM Ubuntu (Nginx + systemd), health check, limites CPU/mem (Linode 2GB)
 2. **Validação com cliente** — SubjectTemplate bovinos (brinco, raça, sexo, peso_referencia, lote, pasto, observacoes), smoke test com vídeos reais
 
 ---

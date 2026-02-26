@@ -24,7 +24,7 @@ Fontes de verdade:
   - Slice 7 — worker hardening: CONCLUÍDO em 2026-02-26
   - Slice 8 — telemetria externa (Actuator): CONCLUÍDO em 2026-02-26
   - Entrega 5 — Storage S3 (Linode Object Storage): CONCLUÍDA em 2026-02-26
-  - Próximo: Entrega 6 — Hardening operacional e deploy
+  - Próximo: Entrega 6 — Hardening operacional e deploy em VM Ubuntu
 
 ---
 
@@ -108,8 +108,8 @@ Critério de aceite:
 
 Resultado: 33 testes, 0 falhas.
 
-Critério de aceite: 
-- Health check funcional para docker-compose
+Critério de aceite:
+- Health check funcional para ambiente de produção (Nginx -> app)
 - Métricas básicas acessíveis via Actuator
 
 ---
@@ -147,7 +147,7 @@ Substituir storage local por Linode Object Storage para produção.
 - Limpeza de temp sempre após upload bem-sucedido
 - Fallback para storage local em desenvolvimento (app.storage.local.enabled)
 - Testes de integração com mock S3 (Testcontainers LocalStack ou similar) [opcional para hardening]
-- docker-compose de produção com variáveis de ambiente via .env
+- Configuração de produção documentada (VM Ubuntu + env vars + serviço)
 - README atualizado com configuração de produção
 
 ### Critérios de aceite
@@ -160,11 +160,12 @@ Substituir storage local por Linode Object Storage para produção.
 
 ---
 
-## Entrega 6 — Hardening operacional e deploy
+## Entrega 6 — Hardening operacional e deploy em VM Ubuntu (Linode)
 
 ### Meta
 
-Ambiente de produção estável e documentado para Olho do Dono.
+Ambiente de produção estável e documentado para Olho do Dono em VM Ubuntu
+na Linode (sem Docker no deploy atual).
 
 ### Prazo estimado
 
@@ -172,32 +173,37 @@ Ambiente de produção estável e documentado para Olho do Dono.
 
 ### Escopo
 
-- docker-compose.prod.yml separado do de desenvolvimento
-  - Sem volumes de código
-  - Variáveis de ambiente via .env
-  - restart: unless-stopped
-  - Limites de CPU e memória (Linode 2GB)
-  - Health check via /actuator/health
-  - Volume dedicado para /data/tmp
-- Dockerfile revisado para produção
-  - Usuário não-root
-  - Imagem mínima com Java 17 + FFmpeg + fontes
-  - HEALTHCHECK configurado
+- Provisionamento/guia de VM Ubuntu (Linode)
+  - PostgreSQL instalado na VM (versão mais recente suportada)
+  - Nginx como reverse proxy (porta pública -> app)
+  - FFmpeg/FFprobe e fontes DejaVu instalados no host
+- Backend rodando como serviço `systemd`
+  - restart automático
+  - variáveis de ambiente via arquivo de ambiente/service unit
+  - documentação de start/stop/restart/status/logs (`journalctl`)
+- Hardening operacional da aplicação
+  - Limites de CPU/memória/paralelismo compatíveis com Linode 2GB
+  - Health check via `/actuator/health`
 - Validações de configuração na inicialização
   - Falhar rápido se variáveis obrigatórias ausentes
 - README de produção completo
   - Pré-requisitos
   - Configuração de variáveis de ambiente
   - Comandos de deploy
-  - Comandos de manutenção (restart, logs, backup)
+  - Comandos de manutenção (systemctl, journalctl, backup)
 
 ### Critérios de aceite
 
-- docker-compose up funciona em servidor limpo seguindo o README
+- Deploy em VM Ubuntu funciona em servidor limpo seguindo o README
 - Aplicação reinicia automaticamente após crash
 - Health check retorna 200 quando tudo está OK
-- Logs acessíveis via docker logs
-- Nenhuma credencial no código ou docker-compose commitado
+- Logs acessíveis via `journalctl` (serviço) e logs do Nginx
+- Nenhuma credencial no código ou arquivos versionados
+
+### Observação de roadmap (futuro)
+
+- Docker/Docker Compose permanece como trilha opcional futura de empacotamento/deploy
+- Não é bloqueador para a entrada em produção atual na VM Ubuntu
 
 ---
 
@@ -253,7 +259,7 @@ da operação do Olho do Dono.
 | Entrega 4 — prereq (slices 1-4) | Correções bloqueantes B1-B4 | ✓ CONCLUÍDO | — |
 | Entrega 4 — slices 5-8 | Hardening contrato + async padrão + worker + Actuator | ✓ CONCLUÍDO (2026-02-26) | — |
 | Entrega 5 | Storage S3 Linode | ✓ CONCLUÍDO (2026-02-26) | — |
-| Entrega 6 | Hardening operacional + deploy | PENDENTE | 2-3 dias úteis |
+| Entrega 6 | Hardening operacional + deploy em VM Ubuntu | PENDENTE | 2-3 dias úteis |
 | Entrega 7 | Template bovinos + validação | PENDENTE | 1-2 dias úteis |
 
 **Total estimado para produção: 3 a 5 dias úteis**

@@ -13,8 +13,9 @@ Use junto com:
 
 ## Stack
 
-Java 17 + Spring Boot 3.x + PostgreSQL + Flyway + Docker +
-FFmpeg (ProcessBuilder) + S3 Linode Object Storage (AWS SDK v2)
+Java 17 + Spring Boot 3.x + PostgreSQL + Flyway +
+FFmpeg (ProcessBuilder) + S3 Linode Object Storage (AWS SDK v2) +
+Nginx (reverse proxy) em VM Ubuntu (Linode)
 
 ---
 
@@ -294,7 +295,42 @@ são recolocados em QUEUED para reprocessamento.
 
 ---
 
-## Docker (Produção)
+## Deploy Atual (Produção) — VM Ubuntu (Linode)
+
+### Topologia
+
+- VM Linux Ubuntu na Linode
+- PostgreSQL (versão mais recente suportada pelo Ubuntu/Linode) instalado na VM
+- Nginx como reverse proxy
+- Backend Spring Boot rodando como serviço do sistema (systemd)
+- FFmpeg/FFprobe instalados no host
+- Variáveis de ambiente via arquivo de serviço/ambiente (nunca comitar credenciais)
+
+### Operação
+
+- App exposta atrás do Nginx (TLS, proxy reverso e timeouts no Nginx)
+- Processo do backend com restart automático via systemd
+- HEALTHCHECK da aplicação via `/actuator/health`
+- Manter limites compatíveis com Linode 2GB (threads/FFmpeg/paralelismo)
+
+### Variáveis de ambiente obrigatórias em produção
+
+```
+STORAGE_ENDPOINT=
+STORAGE_REGION=
+STORAGE_BUCKET=
+STORAGE_ACCESS_KEY=
+STORAGE_SECRET_KEY=
+STORAGE_PUBLIC_BASE_URL=
+STORAGE_PREFIX=
+DB_URL=
+DB_USERNAME=
+DB_PASSWORD=
+```
+
+---
+
+## Plano Futuro — Docker (Opcional)
 
 ### Dockerfile
 
@@ -311,21 +347,7 @@ são recolocados em QUEUED para reprocessamento.
 - Variáveis de ambiente via .env (nunca comitar credenciais)
 - Limites de CPU e memória para Linode 2GB
 - restart: unless-stopped
-
-### Variáveis de ambiente obrigatórias em produção
-
-```
-STORAGE_ENDPOINT=
-STORAGE_REGION=
-STORAGE_BUCKET=
-STORAGE_ACCESS_KEY=
-STORAGE_SECRET_KEY=
-STORAGE_PUBLIC_BASE_URL=
-STORAGE_PREFIX=
-DB_URL=
-DB_USERNAME=
-DB_PASSWORD=
-```
+- Manter como trilha futura (não usar no deploy atual)
 
 ---
 
