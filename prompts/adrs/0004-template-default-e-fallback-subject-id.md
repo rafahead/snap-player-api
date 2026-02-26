@@ -34,5 +34,5 @@ Também foi definido que `Snap` tem identidade própria (`snapId`), independente
 
 ## Relação com planos
 
-- Regras de produto em `prompts/master-produto-snap.md`
-- Execução da primeira fase em `prompts/entregas-api-snap-v2.md`
+- Regras de produto em `prompts/masters/master-produto-snap.md`
+- Execução da primeira fase em `prompts/entregas/entregas-api-snap-v2.md`

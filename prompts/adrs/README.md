@@ -5,9 +5,9 @@
 Registrar decisões estruturais de arquitetura/produto que precisam permanecer rastreáveis ao longo do tempo.
 
 Os ADRs aqui complementam os planos:
-- `prompts/master-tecnico.md`
-- `prompts/master-produto-snap.md`
-- `prompts/entregas-api-snap-v2.md`
+- `prompts/masters/master-tecnico.md`
+- `prompts/masters/master-produto-snap.md`
+- `prompts/entregas/entregas-api-snap-v2.md`
 
 ## Convenção
 

@@ -17,9 +17,9 @@ Quando tudo fica no mesmo arquivo, o documento cresce rápido, perde foco e gera
 
 Manter planejamento em arquivos separados com papéis distintos:
 
-- `prompts/master-tecnico.md` = Master Técnico
-- `prompts/master-produto-snap.md` = Master Produto (Snap-first)
-- `prompts/entregas-api-snap-v2.md` = Plano de Entregas
+- `prompts/masters/master-tecnico.md` = Master Técnico
+- `prompts/masters/master-produto-snap.md` = Master Produto (Snap-first)
+- `prompts/entregas/entregas-api-snap-v2.md` = Plano de Entregas
 - `prompts/adrs/` = decisões estruturais (ADRs)
 
 ## Consequências

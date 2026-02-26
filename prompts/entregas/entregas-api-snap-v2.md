@@ -5,16 +5,16 @@
 Planejamento tático de execução por entregas.
 
 Fontes de verdade conceituais:
-- `prompts/master-tecnico.md` (Master Técnico)
-- `prompts/master-produto-snap.md` (Master Produto / Snap-first)
+- `prompts/masters/master-tecnico.md` (Master Técnico)
+- `prompts/masters/master-produto-snap.md` (Master Produto / Snap-first)
 - `prompts/README.md` (governança dos planos)
 
 ## Objetivo deste arquivo
 
 Este arquivo organiza a **execução incremental** do produto definido em:
 
-- `prompts/master-tecnico.md` (base técnica de processamento)
-- `prompts/master-produto-snap.md` (modelo de produto Snap-first / multi-assinatura)
+- `prompts/masters/master-tecnico.md` (base técnica de processamento)
+- `prompts/masters/master-produto-snap.md` (modelo de produto Snap-first / multi-assinatura)
 
 Foco atual:
 - **somente API**

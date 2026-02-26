@@ -35,5 +35,5 @@ Regras principais:
 
 ## Relação com planos
 
-- Domínio/produto em `prompts/master-produto-snap.md`
-- Sequenciamento em `prompts/entregas-api-snap-v2.md`
+- Domínio/produto em `prompts/masters/master-produto-snap.md`
+- Sequenciamento em `prompts/entregas/entregas-api-snap-v2.md`

@@ -8,8 +8,8 @@ Fonte de verdade para arquitetura e decisões técnicas de processamento.
 
 Use junto com:
 - `prompts/README.md` (governança dos planos)
-- `prompts/master-produto-snap.md` (Master Produto / Snap-first)
-- `prompts/entregas-api-snap-v2.md` (Plano de Entregas)
+- `prompts/masters/master-produto-snap.md` (Master Produto / Snap-first)
+- `prompts/entregas/entregas-api-snap-v2.md` (Plano de Entregas)
 
 ## Objetivo
 

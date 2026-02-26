@@ -6,8 +6,8 @@ Plano de validação técnica local/síncrona da extração (frames + snapshot +
 
 Referências:
 - `prompts/README.md` (governança)
-- `prompts/master-tecnico.md` (Master Técnico)
-- `prompts/master-produto-snap.md` (Master Produto / Snap-first)
+- `prompts/masters/master-tecnico.md` (Master Técnico)
+- `prompts/masters/master-produto-snap.md` (Master Produto / Snap-first)
 
 ## Objetivo do MVP
 

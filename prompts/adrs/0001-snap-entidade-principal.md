@@ -39,6 +39,6 @@ Consequências práticas:
 
 ## Relação com planos
 
-- Baseado em `prompts/master-produto-snap.md`
-- Executado via `prompts/entregas-api-snap-v2.md`
-- Reaproveita pipeline técnico de `prompts/master-tecnico.md`
+- Baseado em `prompts/masters/master-produto-snap.md`
+- Executado via `prompts/entregas/entregas-api-snap-v2.md`
+- Reaproveita pipeline técnico de `prompts/masters/master-tecnico.md`

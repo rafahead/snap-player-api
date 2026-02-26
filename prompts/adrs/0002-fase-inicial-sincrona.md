@@ -43,6 +43,6 @@ O contrato do `snap` deve ser desenhado para migrar ao assíncrono depois sem qu
 
 ## Relação com planos
 
-- Coerente com baseline de `prompts/entregas-api-snap-v2.md`
-- Aproveita pipeline de `prompts/master-tecnico.md`
-- Mantém domínio de `prompts/master-produto-snap.md`
+- Coerente com baseline de `prompts/entregas/entregas-api-snap-v2.md`
+- Aproveita pipeline de `prompts/masters/master-tecnico.md`
+- Mantém domínio de `prompts/masters/master-produto-snap.md`

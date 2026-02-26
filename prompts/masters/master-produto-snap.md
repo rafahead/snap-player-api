@@ -6,8 +6,8 @@ Fonte de verdade para domínio e regras de produto (Snap, Video, Assinatura, Usu
 
 Use junto com:
 - `prompts/README.md` (governança dos planos)
-- `prompts/master-tecnico.md` (Master Técnico)
-- `prompts/entregas-api-snap-v2.md` (Plano de Entregas)
+- `prompts/masters/master-tecnico.md` (Master Técnico)
+- `prompts/entregas/entregas-api-snap-v2.md` (Plano de Entregas)
 
 ## 1. Objetivo
 
@@ -585,6 +585,6 @@ Recomendação de implementação:
 
 ## 14. Observações de alinhamento com planos existentes
 
-- `prompts/mvp-tecnico.md` permanece como validação técnica local/síncrona da extração.
-- `prompts/master-tecnico.md` permanece como base da arquitetura assíncrona e persistência de processamento.
-- `prompts/master-produto-snap.md` adiciona/organiza a visão de **produto**, **multi-assinatura**, **Snap-first** e **integração player+API**.
+- `prompts/estudos/mvp-tecnico.md` permanece como validação técnica local/síncrona da extração.
+- `prompts/masters/master-tecnico.md` permanece como base da arquitetura assíncrona e persistência de processamento.
+- `prompts/masters/master-produto-snap.md` adiciona/organiza a visão de **produto**, **multi-assinatura**, **Snap-first** e **integração player+API**.

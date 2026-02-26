@@ -6,8 +6,8 @@ Estudo e planejamento de integração do cliente Flutter com a API. Não é font
 
 Referências:
 - `prompts/README.md` (governança)
-- `prompts/master-produto-snap.md` (Master Produto / Snap-first)
-- `prompts/entregas-api-snap-v2.md` (Plano de Entregas)
+- `prompts/masters/master-produto-snap.md` (Master Produto / Snap-first)
+- `prompts/entregas/entregas-api-snap-v2.md` (Plano de Entregas)
 
 ## Objetivo
 

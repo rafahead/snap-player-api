@@ -39,23 +39,23 @@ Regra prática:
 
 ### Planos mestres (fontes de verdade)
 
-- `prompts/master-tecnico.md`
+- `prompts/masters/master-tecnico.md`
   - **Master Técnico**
   - arquitetura de processamento, FFmpeg/FFprobe, storage, worker, DB, critérios técnicos
 
-- `prompts/master-produto-snap.md`
+- `prompts/masters/master-produto-snap.md`
   - **Master Produto (Snap-first)**
   - domínio (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`), regras de produto, API conceitual
 
 ### Template padrão de inicialização (reutilizável)
 
-- `prompts/template-app.md`
+- `prompts/templates/template-app.md`
   - prompt base para iniciar novos projetos/apps com esta metodologia
   - define estrutura de `prompts/`, conceitos de organização e sequência de bootstrap
 
 ### Planos de execução
 
-- `prompts/entregas-api-snap-v2.md`
+- `prompts/entregas/entregas-api-snap-v2.md`
   - escopo por entrega
   - prioridades
   - cronograma
@@ -63,12 +63,15 @@ Regra prática:
 
 ### Planos de validação/experimentação
 
-- `prompts/mvp-tecnico.md`
+- `prompts/estudos/mvp-tecnico.md`
   - MVP técnico local/síncrono (frames + snapshot + overlay + `subject`)
+
+- `prompts/estudos/chatgpt-monetizacao-snap-player.md`
+  - prompt detalhado para conversa de monetização/GTM/pricing no ChatGPT
 
 ### Planos de integração com cliente
 
-- `prompts/player-integracao.md`
+- `prompts/estudos/player-integracao.md`
   - estudo e plano de integração do app Flutter `snap-player` (cliente; pode haver path local legado `oddplayer`)
 
 ### Decisões arquiteturais
@@ -112,7 +115,7 @@ Quando surgir uma mudança:
 
 ## Matriz de responsabilidade (qual plano atualizar?)
 
-### Atualize `prompts/master-tecnico.md` quando mudar
+### Atualize `prompts/masters/master-tecnico.md` quando mudar
 
 - pipeline FFmpeg/FFprobe
 - modo de processamento (sync/async)
@@ -121,7 +124,7 @@ Quando surgir uma mudança:
 - schema técnico de processamento
 - contratos técnicos base de extração
 
-### Atualize `prompts/master-produto-snap.md` quando mudar
+### Atualize `prompts/masters/master-produto-snap.md` quando mudar
 
 - domínio (Snap/Video/Assinatura/Usuário/Templates)
 - regras de visibilidade/permissão
@@ -130,7 +133,7 @@ Quando surgir uma mudança:
 - compartilhamento público
 - comportamento multi-assinatura
 
-### Atualize `prompts/entregas-api-snap-v2.md` quando mudar
+### Atualize `prompts/entregas/entregas-api-snap-v2.md` quando mudar
 
 - escopo da próxima entrega
 - prioridade
@@ -138,13 +141,13 @@ Quando surgir uma mudança:
 - critérios de aceite operacionais
 - checklists de execução
 
-### Atualize `prompts/mvp-tecnico.md` quando mudar
+### Atualize `prompts/estudos/mvp-tecnico.md` quando mudar
 
 - MVP técnico de validação local
 - limitações/escopo de MVP
 - payload/retorno do MVP
 
-### Atualize `prompts/player-integracao.md` quando mudar
+### Atualize `prompts/estudos/player-integracao.md` quando mudar
 
 - papel do app Flutter
 - integração com a API
@@ -245,30 +248,28 @@ Situação resumida da implementação (com base no código e no plano):
 
 ## Pendências consolidadas (planos/documentação)
 
-- manter `prompts/entregas-api-snap-v2.md` como espelho fiel do progresso da Entrega 4 (slices e critérios operacionais)
-- revisar `prompts/player-integracao.md` para refletir nomenclatura `snap-player` e integração com `v2` assíncrona
+- manter `prompts/entregas/entregas-api-snap-v2.md` como espelho fiel do progresso da Entrega 4 (slices e critérios operacionais)
+- revisar `prompts/estudos/player-integracao.md` para refletir nomenclatura `snap-player` e integração com `v2` assíncrona
 - quando houver decisão estrutural nova (ex.: progresso dedicado / worker externo), registrar ADR novo antes da implementação
 - manter `http/*.http` atualizado a cada endpoint/parâmetro novo (regra já vigente)
 
 ## Avaliação da estrutura de diretório (`prompts/`)
 
-Resposta curta: **está boa o suficiente para a fase atual**, mas já está ficando **achatada (flat)** demais.
+Resposta curta: **a reorganização incremental foi aplicada** e a estrutura atual ficou melhor para crescer.
 
-Pontos positivos:
+Pontos positivos (após reorganização):
 - baixo atrito (arquivos importantes ficam fáceis de achar)
 - convenções claras entre `master`, `entregas` e `adrs`
 - `prompts/README.md` já funciona como guia de governança
 
-Pontos que começam a pesar:
-- muitos arquivos de naturezas diferentes no mesmo nível (`master`, `entregas`, `mvp`, `player`, `template`)
-- risco de crescer e perder previsibilidade de onde colocar novos estudos/integrações
-- arquivos históricos/auxiliares (`mvp`, integrações) competindo visualmente com as fontes de verdade
+Pontos que ainda exigem disciplina:
+- evitar criar arquivos novos no topo de `prompts/` (manter o padrão por subpastas)
+- manter `prompts/README.md` sincronizado ao criar novos estudos/planos
+- revisar referências internas sempre que mover/renomear arquivos
 
-## Organização sugerida (próxima etapa, sem urgência)
+## Estrutura atual (aplicada)
 
-Para reduzir ruído sem quebrar o fluxo atual, a recomendação é uma reorganização **incremental**:
-
-Estrutura sugerida (alvo):
+Estrutura em uso:
 - `prompts/README.md` (índice/governança)
 - `prompts/masters/`
   - `master-tecnico.md`
@@ -282,12 +283,12 @@ Estrutura sugerida (alvo):
 - `prompts/templates/`
   - `template-app.md`
 
-### Estratégia recomendada para reorganizar sem dor
+### Estratégia para próximas reorganizações (se necessário)
 
-1. Reorganizar apenas quando não houver entrega crítica em andamento
-2. Mover arquivos e atualizar referências em `README.md` + `prompts/README.md` + masters
-3. Fazer uma revisão rápida de links/path após o move
-4. Registrar no plano que a reorganização foi estrutural (sem alterar conteúdo de negócio)
+1. Fazer `move` em commit isolado
+2. Atualizar referências em `README.md` + `prompts/README.md` + masters + ADRs
+3. Rodar busca global por paths antigos
+4. Registrar no plano quando a reorganização impactar workflow/documentação
 
 ## Padrões recomendados (referências)
 

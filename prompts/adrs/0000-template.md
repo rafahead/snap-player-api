@@ -24,6 +24,6 @@ Descreva a decisão tomada de forma objetiva.
 
 ## Relação com planos
 
-- `prompts/master-tecnico.md`
-- `prompts/master-produto-snap.md`
-- `prompts/entregas-api-snap-v2.md`
+- `prompts/masters/master-tecnico.md`
+- `prompts/masters/master-produto-snap.md`
+- `prompts/entregas/entregas-api-snap-v2.md`

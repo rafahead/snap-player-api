@@ -34,7 +34,7 @@ Ao usar este prompt, o Codex/assistente deve produzir (ou propor) a estrutura in
   - fluxos do produto
   - API conceitual (se aplicável)
 
-- `prompts/master-tecnico.md`
+- `prompts/masters/master-tecnico.md`
   - arquitetura
   - componentes
   - decisões técnicas-base
@@ -53,7 +53,7 @@ Ao usar este prompt, o Codex/assistente deve produzir (ou propor) a estrutura in
   - primeira(s) decisão(ões) estruturais já estabilizadas
 
 Arquivos opcionais (quando fizer sentido):
-- `prompts/mvp-tecnico.md`
+- `prompts/estudos/mvp-tecnico.md`
 - `prompts/<integracao-cliente>.md`
 - `prompts/<estudo-ou-experimento>.md`
 

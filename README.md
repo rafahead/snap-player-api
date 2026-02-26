@@ -7,9 +7,9 @@ API para extracao de frames e snapshot de video com FFmpeg, com foco em um contr
 Este repositorio usa os arquivos em `prompts/` como documentacao viva (`docs-as-code`).
 
 Fontes de verdade:
-- `prompts/master-tecnico.md`: arquitetura técnica alvo (assíncrona, worker, PostgreSQL/Flyway, S3, FFmpeg/FFprobe, consultas por `subject`)
-- `prompts/master-produto-snap.md`: modelo de produto `Snap`-first (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`, regras de colaboração)
-- `prompts/entregas-api-snap-v2.md`: sequenciamento por entregas (o que entra em cada fase)
+- `prompts/masters/master-tecnico.md`: arquitetura técnica alvo (assíncrona, worker, PostgreSQL/Flyway, S3, FFmpeg/FFprobe, consultas por `subject`)
+- `prompts/masters/master-produto-snap.md`: modelo de produto `Snap`-first (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`, regras de colaboração)
+- `prompts/entregas/entregas-api-snap-v2.md`: sequenciamento por entregas (o que entra em cada fase)
 - `prompts/adrs/`: decisões estruturais estáveis (ADRs)
 
 ADRs já aceitos (resumo):
@@ -40,10 +40,10 @@ Regra de atualização dos planos:
 - `Master plan` documentado para evolucao assíncrona com PostgreSQL, workers e storage S3
 
 Arquivos de plano:
-- `prompts/mvp-tecnico.md`
-- `prompts/master-tecnico.md`
-- `prompts/master-produto-snap.md`
-- `prompts/entregas-api-snap-v2.md`
+- `prompts/estudos/mvp-tecnico.md`
+- `prompts/masters/master-tecnico.md`
+- `prompts/masters/master-produto-snap.md`
+- `prompts/entregas/entregas-api-snap-v2.md`
 
 Coleção de chamadas HTTP para uso local/manual:
 - `http/v1-processing.http`
@@ -435,14 +435,14 @@ O snapshot inclui, entre outros:
 
 ### Planos / documentação
 
-- manter `prompts/entregas-api-snap-v2.md` atualizado com os próximos slices da Entrega 4
-- revisar `prompts/player-integracao.md` conforme integração real do `snap-player` avançar
+- manter `prompts/entregas/entregas-api-snap-v2.md` atualizado com os próximos slices da Entrega 4
+- revisar `prompts/estudos/player-integracao.md` conforme integração real do `snap-player` avançar
 - registrar ADRs quando houver mudança estrutural em progresso/job/operação
 
 ### Estrutura de `prompts/` (avaliação)
 
-- a estrutura atual está funcional, mas já está ficando "flat"
-- a proposta de reorganização incremental (sem urgência) foi documentada em `prompts/README.md`
+- a reorganização incremental de `prompts/` foi aplicada (subpastas `masters/`, `entregas/`, `estudos/`, `templates/`)
+- a governança e a estrutura atual estão documentadas em `prompts/README.md`
 
 ## Exemplo de Chamada (Com Overlay e Subject)
 
@@ -612,12 +612,12 @@ Veja no JSON de resposta:
 - `src/main/java/com/snapplayerapi/api/dto` - contratos JSON base/legado
 - `src/main/resources/application.yml` - configuracao
 - `src/test/java` - testes unitarios
-- `prompts/mvp-tecnico.md` - plano MVP
-- `prompts/master-tecnico.md` - plano assíncrono completo
+- `prompts/estudos/mvp-tecnico.md` - plano MVP
+- `prompts/masters/master-tecnico.md` - plano assíncrono completo
 
 ## Roadmap (Master)
 
-Planejado em `prompts/master-tecnico.md`:
+Planejado em `prompts/masters/master-tecnico.md`:
 - processamento assíncrono por batch
 - PostgreSQL + Flyway
 - worker com `SKIP LOCKED`
@@ -628,8 +628,8 @@ Planejado em `prompts/master-tecnico.md`:
 ## Contribuicao
 
 - Defina primeiro o escopo no plano correspondente:
-  - `prompts/mvp-tecnico.md` para evolucoes locais/sincronas
-  - `prompts/master-tecnico.md` para arquitetura assíncrona/persistente
+  - `prompts/estudos/mvp-tecnico.md` para evolucoes locais/sincronas
+  - `prompts/masters/master-tecnico.md` para arquitetura assíncrona/persistente
 - Rode testes antes de enviar alteracoes:
   - `mvn -Dmaven.repo.local=.m2/repository test`
 - Para mudancas no contrato JSON, atualize:
