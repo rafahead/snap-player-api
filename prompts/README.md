@@ -16,6 +16,7 @@ Este diretório é a base de planejamento do projeto e deve ser mantido coerente
 
 - `master-tecnico*` -> arquitetura, componentes, limites técnicos
 - `master-produto*` -> domínio, regras de negócio, fluxos de produto
+- `master-monetizacao*` -> estratégia comercial, posicionamento, GTM e pricing
 
 ### 2. Plano de execução (tático)
 
@@ -46,6 +47,10 @@ Regra prática:
 - `prompts/masters/master-produto-snap.md`
   - **Master Produto (Snap-first)**
   - domínio (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`), regras de produto, API conceitual
+
+- `prompts/masters/master-monetizacao.md`
+  - **Master Monetização**
+  - estratégia comercial, posicionamento, oferta, GTM e pricing
 
 ### Template padrão de inicialização (reutilizável)
 
@@ -85,6 +90,7 @@ Regra prática:
 
 - `master-tecnico.md` = `Master Técnico`
 - `master-produto-snap.md` = `Master Produto`
+- `master-monetizacao.md` = `Master Monetização`
 - `template-app.md` = `Template App` / `Prompt de Bootstrap`
 - `entregas-api-snap-v2.md` = `Plano de Entregas`
 - `mvp-tecnico.md` = `Plano MVP`
@@ -109,6 +115,7 @@ Quando surgir uma mudança:
 1. Atualize a **fonte de verdade** correta:
    - `master-tecnico.md` (técnico)
    - `master-produto-snap.md` (produto/domínio)
+   - `master-monetizacao.md` (estratégia comercial)
 2. Atualize o plano de execução (`entregas-api-snap-v2.md`)
 3. Se a decisão for estrutural/estável, registre um ADR em `prompts/adrs/`
 4. Só então execute código (ou ajuste o plano de implementação)
@@ -140,6 +147,14 @@ Quando surgir uma mudança:
 - cronograma/estimativa
 - critérios de aceite operacionais
 - checklists de execução
+
+### Atualize `prompts/masters/master-monetizacao.md` quando mudar
+
+- posicionamento e proposta de valor
+- ICP/personas e segmentos-alvo
+- estratégia comercial/GTM
+- pricing/empacotamento/oferta
+- hipóteses de monetização
 
 ### Atualize `prompts/estudos/mvp-tecnico.md` quando mudar
 

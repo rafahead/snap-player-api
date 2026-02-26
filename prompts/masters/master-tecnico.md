@@ -185,8 +185,9 @@ ffmpeg -hide_banner -loglevel error
 - URL pública: publicBaseUrl + key
 - Preparado para presigned URL (privado) em fase futura
 - Limpeza de temp sempre após upload bem-sucedido
+- um único bucket para todos os clientes (multi-tenant lógico)
+- Configuração via variáveis de ambiente (endpoint, bucket, credenciais)
 
----
 
 ## Banco de Dados + Flyway
 
