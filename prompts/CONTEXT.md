@@ -14,7 +14,7 @@ Repositórios: `snap-player-api` (este) + `snap-player` (Flutter, integração f
 
 ## Trabalhando em
 
-Entrega 6 — Hardening operacional + deploy em VM Ubuntu (env vars, Nginx/systemd, health check)
+Entrega 7 — SubjectTemplate bovinos + validação com vídeos reais (Olho do Dono)
 
 ---
 
@@ -25,13 +25,14 @@ Entrega 6 — Hardening operacional + deploy em VM Ubuntu (env vars, Nginx/syste
 - Entrega 3 — CONCLUÍDA (contexto assinatura, feature flag token, paginação, observabilidade)
 - Entrega 4 — CONCLUÍDA (fila DB, worker SKIP LOCKED, retry/backoff, stale recovery, cleanup, heartbeat, Actuator)
 - Entrega 5 — CONCLUÍDA (StorageService dual-backend local/S3, keys estáveis por snapId)
+- Entrega 6 — CONCLUÍDA (deploy em VM Ubuntu/Linode, `application-prod.yml`, fail-fast de produção, templates systemd/Nginx/env, README + HOWTO)
 
 ---
 
 ## Próximas prioridades (produção — Olho do Dono)
 
-1. **Hardening operacional** — env vars para segredos, deploy em VM Ubuntu (Nginx + systemd), health check, limites CPU/mem (Linode 2GB)
-2. **Validação com cliente** — SubjectTemplate bovinos (brinco, raça, sexo, peso_referencia, lote, pasto, observacoes), smoke test com vídeos reais
+1. **Validação com cliente** — SubjectTemplate bovinos (brinco, raça, sexo, peso_referencia, lote, pasto, observacoes), smoke test com vídeos reais
+2. **Ajustes pós-smoke em produção** — tuning de resolução/duração/FPS/largura máxima, observabilidade e operação
 
 ---
 

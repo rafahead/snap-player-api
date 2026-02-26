@@ -1,0 +1,22 @@
+[Unit]
+Description=Snap Player API (Spring Boot)
+After=network.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=snapplayer
+Group=snapplayer
+WorkingDirectory=/opt/snap-player-api
+EnvironmentFile=-/etc/snap-player-api/snap-player-api.env
+ExecStart=/usr/bin/java -jar /opt/snap-player-api/snap-player-api.jar --spring.profiles.active=prod
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+NoNewPrivileges=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

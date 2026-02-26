@@ -24,7 +24,8 @@ Fontes de verdade:
   - Slice 7 — worker hardening: CONCLUÍDO em 2026-02-26
   - Slice 8 — telemetria externa (Actuator): CONCLUÍDO em 2026-02-26
   - Entrega 5 — Storage S3 (Linode Object Storage): CONCLUÍDA em 2026-02-26
-  - Próximo: Entrega 6 — Hardening operacional e deploy em VM Ubuntu
+  - Entrega 6 — Hardening operacional + deploy em VM Ubuntu: CONCLUÍDA em 2026-02-26
+  - Próximo: Entrega 7 — SubjectTemplate bovinos + validação com vídeos reais
 
 ---
 
@@ -34,8 +35,8 @@ Antes de qualquer nova funcionalidade, o objetivo é estabilizar
 o que existe e colocar em produção para a equipe do Olho do Dono.
 
 Sequência de produção:
-1. Hardening operacional
-2. SubjectTemplate de bovinos + smoke test com vídeos reais
+1. Hardening operacional (CONCLUÍDO em 2026-02-26)
+2. SubjectTemplate de bovinos + smoke test com vídeos reais (próximo)
 
 ---
 
@@ -160,7 +161,7 @@ Substituir storage local por Linode Object Storage para produção.
 
 ---
 
-## Entrega 6 — Hardening operacional e deploy em VM Ubuntu (Linode)
+## Entrega 6 — Hardening operacional e deploy em VM Ubuntu (Linode) — CONCLUÍDA 2026-02-26
 
 ### Meta
 
@@ -171,7 +172,7 @@ na Linode (sem Docker no deploy atual).
 
 2 a 3 dias úteis
 
-### Escopo
+### Escopo implementado
 
 - Provisionamento/guia de VM Ubuntu (Linode)
   - PostgreSQL instalado na VM (versão mais recente suportada)
@@ -191,6 +192,16 @@ na Linode (sem Docker no deploy atual).
   - Configuração de variáveis de ambiente
   - Comandos de deploy
   - Comandos de manutenção (systemctl, journalctl, backup)
+- `deploy/ubuntu/HOWTO.md` com passo a passo manual de criação/provisionamento/deploy "na unha"
+- Arquivos versionados de apoio ao deploy:
+  - `src/main/resources/application-prod.yml`
+  - `deploy/ubuntu/systemd/snap-player-api.service`
+  - `deploy/ubuntu/nginx/snap-player-api.conf`
+  - `deploy/ubuntu/env/snap-player-api.env.example`
+
+### Resultado
+
+- Testes automatizados executados com sucesso após as mudanças da Entrega 6 (`mvn test`)
 
 ### Critérios de aceite
 
@@ -228,12 +239,8 @@ da operação do Olho do Dono.
     "is_default": false,
     "campos": [
       { "key": "brinco", "type": "string", "obrigatorio": true },
-      { "key": "raca", "type": "string", "obrigatorio": true },
-      { "key": "sexo", "type": "string", "obrigatorio": true },
-      { "key": "peso_referencia", "type": "number", "obrigatorio": false },
-      { "key": "condicao_corporal", "type": "string", "obrigatorio": false },
+      { "key": "peso", "type": "number", "obrigatorio": false },
       { "key": "lote", "type": "string", "obrigatorio": false },
-      { "key": "pasto", "type": "string", "obrigatorio": false },
       { "key": "observacoes", "type": "string", "obrigatorio": false }
     ]
   }
@@ -259,10 +266,10 @@ da operação do Olho do Dono.
 | Entrega 4 — prereq (slices 1-4) | Correções bloqueantes B1-B4 | ✓ CONCLUÍDO | — |
 | Entrega 4 — slices 5-8 | Hardening contrato + async padrão + worker + Actuator | ✓ CONCLUÍDO (2026-02-26) | — |
 | Entrega 5 | Storage S3 Linode | ✓ CONCLUÍDO (2026-02-26) | — |
-| Entrega 6 | Hardening operacional + deploy em VM Ubuntu | PENDENTE | 2-3 dias úteis |
+| Entrega 6 | Hardening operacional + deploy em VM Ubuntu | ✓ CONCLUÍDO (2026-02-26) | — |
 | Entrega 7 | Template bovinos + validação | PENDENTE | 1-2 dias úteis |
 
-**Total estimado para produção: 3 a 5 dias úteis**
+**Total estimado para próxima validação (Entrega 7): 1 a 2 dias úteis**
 
 ---
 

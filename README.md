@@ -5,6 +5,7 @@ API para extração de frames e snapshot de vídeo com FFmpeg, com metadados ras
 ## Planejamento
 
 Documentação viva em `prompts/`. Ponto de entrada: **`prompts/CONTEXT.md`**.
+HOWTO de deploy manual em Linode/Ubuntu: `deploy/ubuntu/HOWTO.md`.
 
 ## Requisitos
 
@@ -40,6 +41,78 @@ Configs IntelliJ (`.run/`):
 - `Snap Player API (Async)` — asyncCreateEnabled=true
 
 Banco padrão local: `H2` file-based em `./.data/snapplayerapi` (sem configurar PostgreSQL).
+
+## Produção (VM Ubuntu/Linode + Nginx + systemd)
+
+Deploy atual de produção é em VM Ubuntu na Linode (sem Docker no curto prazo). O plano Docker fica
+como trilha futura.
+
+Arquivos de apoio versionados:
+- `src/main/resources/application-prod.yml` — perfil `prod` (PostgreSQL + S3 + fail-fast)
+- `deploy/ubuntu/systemd/snap-player-api.service` — unit file base do serviço
+- `deploy/ubuntu/nginx/snap-player-api.conf` — reverse proxy base
+- `deploy/ubuntu/env/snap-player-api.env.example` — variáveis de ambiente de produção (exemplo)
+
+Pré-requisitos no servidor (Ubuntu):
+- Java 17
+- FFmpeg/FFprobe + fontes DejaVu
+- PostgreSQL
+- Nginx
+
+```bash
+sudo apt update
+sudo apt install -y openjdk-17-jre-headless ffmpeg fonts-dejavu-core postgresql nginx
+```
+
+Build local do artefato:
+
+```bash
+mvn -Dmaven.repo.local=.m2/repository package
+```
+
+Provisionamento base (exemplo):
+
+```bash
+sudo useradd --system --home /opt/snap-player-api --shell /usr/sbin/nologin snapplayer || true
+sudo mkdir -p /opt/snap-player-api /data/tmp/video-frames-processing /etc/snap-player-api
+sudo chown -R snapplayer:snapplayer /opt/snap-player-api /data/tmp/video-frames-processing
+sudo cp target/snap-player-api-0.0.1-SNAPSHOT.jar /opt/snap-player-api/snap-player-api.jar
+sudo cp deploy/ubuntu/systemd/snap-player-api.service /etc/systemd/system/
+sudo cp deploy/ubuntu/env/snap-player-api.env.example /etc/snap-player-api/snap-player-api.env
+sudo cp deploy/ubuntu/nginx/snap-player-api.conf /etc/nginx/sites-available/snap-player-api.conf
+sudo ln -sf /etc/nginx/sites-available/snap-player-api.conf /etc/nginx/sites-enabled/snap-player-api.conf
+```
+
+Ajuste `/etc/snap-player-api/snap-player-api.env` com:
+- `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+- `STORAGE_*` (Linode Object Storage)
+- `SNAP_PUBLIC_BASE_URL` (URL pública da API)
+- `APP_INTERNAL_ACCESS_TOKEN` (recomendado para `/internal/**`, opcional se protegido por rede/Nginx)
+
+Subir serviço:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now snap-player-api
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Comandos de manutenção:
+
+```bash
+sudo systemctl status snap-player-api
+sudo systemctl restart snap-player-api
+sudo journalctl -u snap-player-api -f
+curl -fsS http://127.0.0.1:8080/actuator/health
+curl -fsS https://api.example.com/actuator/health
+```
+
+Notas operacionais:
+- O perfil `prod` falha na inicialização se detectar H2, storage local habilitado, S3 desabilitado
+  ou `app.processing.tmpBase` relativo.
+- O perfil `prod` também valida a relação `workerHeartbeatIntervalMs < workerLockTimeoutSeconds * 1000 / 3`.
+- Configure TLS no Nginx (ex.: Certbot) antes de expor publicamente.
 
 ## Endpoints
 
