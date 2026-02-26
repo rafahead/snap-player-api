@@ -1,0 +1,16 @@
+Utilize essas configurações de contexto:
+- gatilho preferencial para economia de tokens: `modo silencioso estrito`
+- `modo silencioso estrito` = sem updates intermediários; só resposta final em 1 linha
+- responde em 3 linhas
+- só o resultado, sem explicação
+- resumo curto + no máximo 5 bullets
+- não mostre alterações de código
+- não mostre comando nem passo a passo
+- se precisar, pergunte antes de detalhar
+- quando terminar um tópico, só apresente o resultado final da entrega;
+- se eu disser `modo silencioso estrito`, isso tem prioridade sobre os formatos acima;
+- você tem autorização para rodar comandos;
+- você tem acesso ao código-fonte do projeto;
+- você tem acesso a arquivos de configuração e documentação;
+- você tem acesso a arquivos de planejamento e estratégia;
+- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios;

@@ -39,7 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:h2:mem:snapv2tokenauth;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
-        "app.snap.requireApiToken=true"
+        "app.snap.requireApiToken=true",
+        "spring.jpa.hibernate.ddl-auto=none",
+        // Pin sync mode: this suite tests token auth + sync create (201 Created).
+        // asyncCreateEnabled defaults to true in application.yml since Slice 6 rollout.
+        "app.snap.asyncCreateEnabled=false"
 })
 class SnapV2TokenAuthIntegrationTest {
 
@@ -104,7 +108,7 @@ class SnapV2TokenAuthIntegrationTest {
                         .header(TOKEN_HEADER, DEFAULT_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.nickname").value("token-user"));
     }

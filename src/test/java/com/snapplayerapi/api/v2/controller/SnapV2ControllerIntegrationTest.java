@@ -43,7 +43,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:h2:mem:snapv2test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver"
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.jpa.hibernate.ddl-auto=none",
+        // Pin sync mode: this suite tests synchronous behavior (immediate COMPLETED response).
+        // asyncCreateEnabled defaults to true in application.yml since Slice 6 rollout.
+        "app.snap.asyncCreateEnabled=false"
 })
 class SnapV2ControllerIntegrationTest {
 
@@ -81,7 +85,7 @@ class SnapV2ControllerIntegrationTest {
         String createResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.subject.id").isString())
                 .andExpect(jsonPath("$.subjectTemplateId").isNumber())
@@ -112,7 +116,7 @@ class SnapV2ControllerIntegrationTest {
                         .header("X-Assinatura-Codigo", "default")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-header-default.mp4", "operador-header", "h-1", "HDR-1", 440.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.nickname").value("operador-header"));
     }
@@ -123,7 +127,7 @@ class SnapV2ControllerIntegrationTest {
         String firstCreateResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-b.mp4", "operador1", "a-1", "123", 450.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -134,7 +138,7 @@ class SnapV2ControllerIntegrationTest {
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-b.mp4", "operador2", "a-2", "999", 470.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         mockMvc.perform(get("/v2/videos/{videoId}/snaps", UUID.fromString(videoId)))
                 .andExpect(status().isOk())
@@ -175,7 +179,7 @@ class SnapV2ControllerIntegrationTest {
         String createResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-share.mp4", "operador-share", "s-1", "SH-1", 410.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -216,19 +220,19 @@ class SnapV2ControllerIntegrationTest {
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-m1.mp4", "operador-mine", "m-1", "M-001", 430.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-m1.mp4", "operador-mine", "m-2", "M-002", 431.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-m2.mp4", "operador-mine", "m-3", "M-003", 432.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-m3.mp4", "outro-usuario", "x-1", "X-001", 500.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         mockMvc.perform(get("/v2/snaps/mine").queryParam("nickname", "operador-mine"))
                 .andExpect(status().isOk())
@@ -261,15 +265,15 @@ class SnapV2ControllerIntegrationTest {
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-p1.mp4", "operador-page", "p-1", "P-001", 430.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-p1.mp4", "operador-page", "p-2", "P-002", 431.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
         mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-p2.mp4", "operador-page", "p-3", "P-003", 432.0)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         mockMvc.perform(get("/v2/snaps/mine")
                         .queryParam("nickname", "operador-page")
@@ -279,7 +283,7 @@ class SnapV2ControllerIntegrationTest {
                         .queryParam("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nickname").value("operador-page"))
-                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.page.offset").value(1))
                 .andExpect(jsonPath("$.page.limit").value(1))
                 .andExpect(jsonPath("$.page.returned").value(1))
@@ -294,7 +298,7 @@ class SnapV2ControllerIntegrationTest {
                         .queryParam("sortDir", "desc")
                         .queryParam("limit", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.page.offset").value(0))
                 .andExpect(jsonPath("$.page.limit").value(1))
                 .andExpect(jsonPath("$.page.returned").value(1))
@@ -325,6 +329,39 @@ class SnapV2ControllerIntegrationTest {
                 .andExpect(jsonPath("$.totalRequests", greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.routesCount", greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.routes[?(@.routePattern == '/v2/snaps/search')].requests").exists());
+    }
+
+    @Test
+    void shouldExposeActuatorHealthAndCustomJobMetrics() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.names[?(@ == 'snap.jobs.completed')]").exists())
+                .andExpect(jsonPath("$.names[?(@ == 'snap.jobs.failed')]").exists())
+                .andExpect(jsonPath("$.names[?(@ == 'snap.jobs.terminal.avg.duration.ms')]").exists());
+
+        mockMvc.perform(get("/actuator/metrics/snap.jobs.completed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("snap.jobs.completed"))
+                .andExpect(jsonPath("$.measurements[0].statistic").value("VALUE"))
+                .andExpect(jsonPath("$.measurements[0].value").isNumber());
+    }
+
+    @Test
+    void shouldTruncateIncomingRequestIdHeaderTo64Chars() throws Exception {
+        String longRequestId = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-extra";
+        String expected = longRequestId.substring(0, 64);
+
+        mockMvc.perform(get("/v2/snaps/search")
+                        .header("X-Request-Id", longRequestId)
+                        .queryParam("subjectId", "nao-existe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Request-Id", expected));
     }
 
     @Test

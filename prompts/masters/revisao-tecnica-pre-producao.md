@@ -12,7 +12,7 @@
 Revisão completa do código das Entregas 1–4 (slices 1–3) cruzando:
 - código implementado via Codex CLI
 - paradigmas decididos nos masters e ADRs
-- novos paradigmas discutidos em `prompts/estudos/claude/`
+- novos paradigmas discutidos neste plano (`prompts/masters/revisao-tecnica-pre-producao.md`)
 
 Os riscos foram classificados em três faixas:
 
@@ -35,7 +35,7 @@ uma assinatura com milhares de snaps vai saturar a heap a cada request de lista.
 **Correção:** migrar para `Pageable` do Spring Data com `Page<T>` nas queries, ou usar
 queries nativas com `LIMIT`/`OFFSET`. O contrato de response (`PageMetaResponse`) já está
 preparado — só o lado do banco está faltando.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `OffsetBasedPageRequest` + `Slice<T>` em todas as queries de lista; `JpaSort.unsafe` para agregados; `listMineVideos` com JPQL GROUP BY + query secundária para `latestSnapId`. Testes atualizados: `$.total` agora reflete items da página (sem COUNT total, conforme ADR 0006).
 
 ---
 
@@ -48,7 +48,7 @@ Essa query **vai falhar** assim que o banco for PostgreSQL.
 **Impacto:** Endpoint `/internal/observability/snap-job-metrics` quebra em produção.
 **Correção:** substituir por sintaxe compatível com Postgres, ou reescrever o cálculo
 em Java após buscar os timestamps.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `datediff(...)` substituído por `extract(epoch from (finished_at - started_at)) * 1000` em `SnapProcessingJobRepository.terminalDurationSummary()`.
 
 ---
 
@@ -66,7 +66,7 @@ que usam `@Lob`, ou remover o `@Lob` e confiar no mapeamento padrão `VARCHAR`/`
 do Hibernate para `String`.
 **Verificar:** rodar a aplicação apontando para PostgreSQL real e confirmar os tipos das
 colunas com `\d snap` no psql antes do primeiro deploy.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `@Lob` removido de `SnapEntity`, `SnapProcessingJobEntity`, `VideoEntity`; substituído por `@Column(columnDefinition = "text")`. Migrations V1 e V3 corrigidas de `clob` para `text` (tipo nativo PostgreSQL). Schema validation desabilitada em testes H2 (`ddl-auto=none` via `@TestPropertySource`).
 
 ---
 
@@ -81,7 +81,7 @@ no `finally` do processamento.
 **Correção:** garantir que o diretório temp seja deletado no `finally` do processamento,
 tanto em sucesso quanto em falha. O scheduler de cleanup é complementar (último recurso para
 crashes), mas o cleanup direto no gateway deve ser a linha principal.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `TempStorageService.deleteRecursively(Path)` adicionado; `ProcessingVideoFrameService` chama cleanup no `finally` por item (sucesso e falha).
 
 ---
 
@@ -95,7 +95,7 @@ um atacante pode inferir o prefixo correto do token medindo tempo de resposta.
 **Impacto:** Baixo em desenvolvimento, real em produção com tráfego externo.
 **Correção:** usar `MessageDigest.isEqual(token1.getBytes(), token2.getBytes())` para
 comparação em tempo constante.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `MessageDigest.isEqual(token.getBytes(UTF_8), provided.getBytes(UTF_8))` em `validateAssinaturaApiTokenIfEnabled()`.
 
 ---
 
@@ -109,7 +109,7 @@ protege contra duplicata no banco, mas a exceção resultante (`DataIntegrityVio
 **Correção:** envolver o save em try/catch de `DataIntegrityViolationException` e,
 em caso de conflito, buscar o registro existente (`findByAssinaturaIdAndUrlHash`).
 Padrão "upsert otimista".
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — try/catch de `DataIntegrityViolationException` com re-fetch por hash em `resolveOrCreateVideo()`.
 
 ---
 
@@ -124,7 +124,7 @@ mas pode surgir com mais de um operador conectado.
 **Correção:** usar `@Transactional` com `SELECT FOR UPDATE` na busca, ou aceitar que
 a última gravação vence (documentar a decisão). Também adicionar `updated_at` na entidade
 `usuario` para rastreabilidade.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — decisão documentada: "última gravação vence" para nickname (campo de display sem implicação de segurança). try/catch de `DataIntegrityViolationException` na criação com re-fetch por email. JavaDoc atualizado com a decisão.
 
 ---
 
@@ -137,7 +137,7 @@ de jobs — informação útil para reconhecimento.
 **Correção:** proteger por rede (apenas loopback/docker network) **ou** exigir o mesmo
 token de assinatura nos headers. A opção mais simples para Linode é restringir via
 `nginx`/proxy reverso ou adicionar uma verificação de IP de origem.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `InternalApiTokenInterceptor` criado; registrado em `WebObservabilityConfig` para `/internal/**`. Token configurado via `app.internal.accessToken` (blank = aberto para dev; setar via env var em produção). Comparação timing-safe com `MessageDigest.isEqual`.
 
 ---
 
@@ -151,7 +151,7 @@ do Hibernate ou stack parcial.
 e logar a mensagem real internamente com `log.error("Internal error", ex)`.
 Adicionar `log.error(...)` para 5xx — atualmente o stack trace **não é logado**, o que
 dificulta diagnóstico em produção.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `handleIllegalState` retorna mensagem genérica + `log.error(..., ex)`. Adicionado handler catch-all `@ExceptionHandler(Exception.class)` com a mesma semântica — nenhum detalhe interno escapa para o body de 5xx.
 
 ---
 
@@ -164,7 +164,7 @@ O handler atual não captura essa exceção, então o cliente recebe um 400 com 
 Spring em vez do formato `ApiErrorResponse` consistente.
 **Correção:** adicionar handler para `MissingServletRequestParameterException` retornando
 400 com mensagem limpa.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — handler `@ExceptionHandler(MissingServletRequestParameterException.class)` adicionado em `GlobalExceptionHandler`; retorna 400 com `"Missing required parameter: {name}"` no formato `ApiErrorResponse`.
 
 ---
 
@@ -179,7 +179,7 @@ Flutter futuro) receberão código inesperado.
 ou retornar `ResponseEntity.created(uri).body(response)`.
 **Observação:** verificar se o snap assíncrono deve retornar `202 Accepted` quando
 `asyncCreateEnabled=true`.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — `createSnap()` retorna `201 Created` (modo sync) ou `202 Accepted` (modo async, quando `asyncCreateEnabled=true`), via `ResponseEntity.status(status).body(response)`. `SnapProperties` injetado no controller para determinar o status.
 
 ---
 
@@ -190,7 +190,7 @@ ou retornar `ResponseEntity.created(uri).body(response)`.
 **Arquivo:** `SnapResponse`
 **Problema:** O campo `outputDir` expõe o caminho do filesystem local do servidor.
 **Decisão:** remover do DTO público ou mover para um campo interno/admin separado.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — campo `outputDir` removido de `SnapResponse`; `snap.getOutputDir()` removido do `toResponse()` em `SnapV2Service`.
 
 ---
 
@@ -200,7 +200,7 @@ ou retornar `ResponseEntity.created(uri).body(response)`.
 **Problema:** Campos de diagnóstico interno de concorrência do worker são expostos
 no contrato público da API.
 **Decisão:** mover para um contexto de observabilidade interna, não no response de negócio.
-**Status:** PENDENTE
+**Status:** FEITO (2026-02-26) — campos `lockedAt` e `lockOwner` removidos de `SnapJobResponse`; `loadSnapJobResponse()` em `SnapV2Service` atualizado.
 
 ---
 

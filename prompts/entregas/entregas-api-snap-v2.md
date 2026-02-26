@@ -1,453 +1,274 @@
-# Plano de Entregas v2 (API Snap-First, sem Player)
+# Plano de Entregas v2 — API Snap-First
 
-## Papel deste arquivo (Plano de Entregas)
+## Papel deste arquivo
 
-Planejamento tático de execução por entregas.
+Sequenciamento tático de implementação.
 
-Fontes de verdade conceituais:
-- `prompts/masters/master-tecnico.md` (Master Técnico)
-- `prompts/masters/master-produto-snap.md` (Master Produto / Snap-first)
-- `prompts/README.md` (governança dos planos)
-
-## Objetivo deste arquivo
-
-Este arquivo organiza a **execução incremental** do produto definido em:
-
-- `prompts/masters/master-tecnico.md` (base técnica de processamento)
-- `prompts/masters/master-produto-snap.md` (modelo de produto Snap-first / multi-assinatura)
-
-Foco atual:
-- **somente API**
-- **processamento síncrono**
-- **servidor restrito**
-- **assinatura default única**
-- **sem autenticação**
-- **busca por subject básica (igualdade)**
-
-## Papel deste plano vs planos master
-
-- `master-tecnico.md` + `master-produto-snap.md` = **fontes de verdade** (conceitos, regras, arquitetura, domínio)
-- `entregas-api-snap-v2.md` = **sequenciamento de implementação** (o que entra em cada entrega)
-
-Regra de governança:
-- se surgir regra nova de negócio/arquitetura, atualizar primeiro `master-tecnico.md` e/ou `master-produto-snap.md`
-- depois ajustar este arquivo de entregas
-
-## Baseline confirmado para a fase atual
-
-### Simplificações aceitas
-
-- 1 assinatura única já criada (`default`)
-- 1 template único já criado (`default`, equivalente ao template do MVP)
-- sem autenticação/login
-- identidade operacional por `nickname` informado na API
-- registrar também `email`
-- processamento síncrono (sem worker assíncrono nesta fase)
-- armazenamento local (sem S3)
-- sem player (integração posterior)
-
-### Regras que permanecem obrigatórias
-
-- `Snap` é a entidade principal
-- `startFrame` tem precedência sobre `startSeconds`
-- `subject.id` pode cair em fallback para `snapId`
-- `snapshotDurationSeconds` com fallback para `durationSeconds`
-- `ffprobe` para compatibilidade + motivo de falha
-- mesmo vídeo URL em empresas diferentes não deve misturar dados (já modelado para v2; nesta fase usar assinatura `default`)
-
-## Estratégia de implementação
-
-### Abordagem recomendada
-
-Implementar uma **v1 síncrona persistente** reaproveitando o MVP:
-- manter pipeline FFmpeg/FFprobe já validado
-- adicionar persistência Snap-first
-- expor endpoints `v2`
-
-Isso reduz risco e prepara migração futura para processamento assíncrono sem trocar o contrato principal do `snap`.
-
-## Entrega 1 (prioridade máxima) - API Snap-first síncrona
-
-## Meta
-
-Fechar uma primeira versão utilizável da API para:
-- criar snap síncrono
-- consultar snap
-- listar snaps por vídeo
-- persistir vídeo/snap/subject
-
-## Prazo estimado
-
-- **4 a 6 dias úteis**
-
-## Escopo funcional
-
-### 1. Criar snap (síncrono)
-
-`POST /v2/snaps`
-
-Requisitos:
-- aceitar `videoId` ou `videoUrl`
-- se vier `videoUrl`, criar/reutilizar `video` no contexto da assinatura `default`
-- receber `nickname` e `email`
-- aplicar template `default` se `subjectTemplateId` ausente
-- processar síncrono com FFprobe + FFmpeg
-- persistir `snap` + `subject` + resultado
-- retornar JSON consolidado do snap
-
-### 2. Consultar snap
-
-`GET /v2/snaps/{snapId}`
-
-Requisitos:
-- retornar detalhe completo
-- incluir status, `videoProbe`, `subject`, `snapshotVideo`, `frames`
-
-### 3. Listar snaps por vídeo
-
-`GET /v2/videos/{videoId}/snaps`
-
-Requisitos:
-- listar todos os snaps do vídeo (assinatura `default`)
-- ordenação por `resolvedStartSeconds` e/ou `createdAt`
-- filtro opcional por `nickname`
-
-### 4. Buscar snaps por subject (básica)
-
-`GET /v2/snaps/search?subjectId=...&attrKey=...&attrValue=...`
-
-Escopo desta entrega:
-- igualdade (string)
-- igualdade simples para número via query textual (opcional)
-
-Se necessário simplificar ainda mais:
-- entregar apenas busca por `subjectId` nesta primeira etapa
-
-## Escopo técnico (Entrega 1)
-
-### Persistência mínima (PostgreSQL + Flyway)
-
-Tabelas:
-- `assinatura` (seed `default`)
-- `subject_template` (seed `default`)
-- `usuario` (mínimo: `nickname`, `email`)
-- `video`
-- `snap`
-- `snap_subject_attr`
-
-Observações:
-- manter `assinatura_id` nas tabelas mesmo com uma única assinatura agora
-- evita retrabalho na fase multi-assinatura real
-
-### Reuso de código do MVP
-
-Reaproveitar/adaptar:
-- `FfmpegService`
-- `VideoProbeService`
-- regras de recorte/validação (`startFrame`, `snapshotDurationSeconds`, compatibilidade)
-- DTOs base (adaptando para `v2` e persistência)
-
-### Storage
-
-- arquivos em diretório local (temporário/persistente local)
-- persistir paths no `snap`
-
-## Regras de negócio da Entrega 1
-
-- `nickname` é obrigatório (identidade operacional temporária)
-- `email` deve ser informado e persistido
-- `subjectTemplateId` ausente => usar template `default`
-- `subject.id` ausente => copiar `snapId`
-- `startFrame` > `startSeconds`
-- snap pode ser instantâneo ou intervalo
-- mesmo `videoUrl` reutiliza `video` no escopo da assinatura `default`
-
-## Critérios de aceite (Entrega 1)
-
-- É possível criar `snap` síncrono com `videoUrl`.
-- É possível criar `snap` síncrono com `videoId`.
-- API persiste `video`, `snap`, `subject_json` e `snap_subject_attr`.
-- API retorna `snapshot.mp4` + frames no snap processado.
-- API retorna motivo claro quando vídeo é incompatível.
-- `subjectTemplateId` ausente usa template `default`.
-- `subject.id` ausente recebe `snapId`.
-- `GET /v2/snaps/{snapId}` retorna o snap completo.
-- `GET /v2/videos/{videoId}/snaps` retorna todos os snaps do vídeo (com filtro por `nickname` opcional).
-- Código novo/alterado da entrega está documentado e comentado detalhadamente (incluindo testes e README).
-
-## Entrega 2 - Compartilhamento + listas de usuário
-
-## Meta
-
-Fechar o ciclo de uso básico sem player:
-- compartilhar snap
-- consultar snaps/vídeos por usuário
-- busca básica de `subject` mais estável
-
-## Prazo estimado adicional
-
-- **3 a 4 dias úteis** (após Entrega 1)
-
-## Escopo
-
-### 1. Compartilhamento público
-
-- `POST /v2/snaps/{snapId}/share`
-- `GET /public/snaps/{token}`
-
-Retorno público:
-- clip (`snapshot.mp4`)
-- frames
-- metadados públicos do snap
-
-### 2. Listas “mine”
-
-- `GET /v2/snaps/mine?nickname=...`
-- `GET /v2/videos/mine?nickname=...`
-
-### 3. Busca básica por `subject`
-
-- buscar por `subjectId`
-- buscar por par `attrKey + attrValue` (igualdade)
-
-### 4. Hardening mínimo
-
-- validações
-- tratamento de erro consistente
-- testes de integração principais
-
-## Critérios de aceite (Entrega 2)
-
-- Snap pode gerar link público.
-- Link público exibe/retorna recorte e imagens.
-- Listas por `nickname` funcionam.
-- Busca básica por `subject` retorna snaps corretos.
-
-## Entrega 3 - Base para evolução (sem quebra de contrato; mudanças aditivas permitidas)
-
-## Meta
-
-Preparar terreno para:
-- multi-assinatura operacional completa
-- token de API por assinatura
-- player integrado
-
-Status atual:
-- concluída (implementados: contexto de assinatura, token por feature flag, paginação/ordenação padronizadas e observabilidade mínima)
-
-## Prazo estimado adicional
-
-- **2 a 5 dias úteis** (conforme profundidade)
-
-## Escopo sugerido
-
-- formalizar contexto de assinatura no request (mesmo com `default` em uso)
-- preparar autenticação por token (desligada/feature flag ou stub)
-- refinar schema/índices para volume maior
-- padronizar paginação e ordenação
-- observabilidade básica (logs estruturados / métricas mínimas)
-
-## Entrega 4 (posterior) - Migração para assíncrono
-
-Fora do escopo imediato deste plano, mas já prevista:
-- fila em DB
-- worker com `SKIP LOCKED`
-- estados de processamento
-- retorno de `POST` assíncrono por `snapId`/job
-
-Status atual:
-- iniciada (slices 1-3 implementados): fila em DB + worker local + `POST /v2/snaps` assíncrono opcional por feature flag
-- implementado adicionalmente: `job` em `SnapResponse` (create/get by id), retentativas com backoff exponencial, recuperação de `RUNNING` órfão (stale lock), cleanup agendado de jobs terminais e snapshot interno `/internal/observability/snap-job-metrics`
-- pendente: tornar o modo assíncrono padrão, endpoint de progresso dedicado (se necessário) e endurecimento operacional para ambiente distribuído (heartbeat/claim tuning, persistência/telemetria externa)
-
-Importante:
-- preservar contrato principal do `snap` para evitar retrabalho no player/API clientes
-
-## Checklist Entrega 4 (consolidado)
-
-### Já implementado (slices 1-3)
-
-- tabela de fila em DB (`snap_processing_job`) com migration Flyway
-- worker local com polling e claim via `FOR UPDATE SKIP LOCKED`
-- `POST /v2/snaps` assíncrono opcional por feature flag (`app.snap.asyncCreateEnabled`)
-- `GET /v2/snaps/{id}` reutilizado como polling de estado/resultado
-- payload aditivo `job` em `SnapResponse` (create/get by id)
-- retentativas com backoff exponencial (`RETRY_WAIT`)
-- recuperação de jobs `RUNNING` órfãos por timeout de lock (`workerLockTimeoutSeconds`)
-- cleanup agendado de jobs terminais antigos (retention-based)
-- observabilidade de jobs via `/internal/observability/snap-job-metrics`
-- testes de integração cobrindo async create, retry/backoff, stale recovery e cleanup
-- arquivos `http/*.http` atualizados para fluxo assíncrono e métricas
-
-### Pendente — sequência de slices
-
-#### Slice 4 — Correções bloqueantes pré-Postgres (PREREQUISITE)
-
-Deve ser executado antes dos demais slices. Nenhum deploy em Postgres real
-antes de concluir este slice.
-
-Itens técnicos:
-- **B1** — Paginação nativa no banco (ADR 0006)
-  - reescrever queries de lista com `LIMIT`/`OFFSET` no banco
-  - remover `paginateAndSort()` in-memory do `SnapV2Service`
-  - sort dinâmico via whitelist validada (sem SQL injection)
-- **B2** — Corrigir `datediff` H2-specific em `terminalDurationSummary`
-  - substituir por sintaxe Postgres: `EXTRACT(EPOCH FROM (finished_at - started_at)) * 1000`
-- **B3** — Substituir `@Lob` por `@Column(columnDefinition = "text")` (ADR 0007)
-  - todas as entidades com campos JSON: `SnapEntity`, `SnapProcessingJobEntity`, `VideoEntity`
-  - confirmar mapeamento correto com `\d snap` no psql após deploy
-- **B4** — Garantir cleanup de temp FFmpeg no `finally` do gateway
-  - `VideoFrameSnapProcessingGateway` deve chamar `TempStorageService.deleteDir()`
-    tanto em sucesso quanto em falha
-
-Critério de aceite:
-- aplicação sobe e funciona conectada ao PostgreSQL real sem erros
-- listas de snaps com 1.000+ registros respondem sem pressão na heap
-- `/internal/observability/snap-job-metrics` funciona em Postgres (sem erro de `datediff`)
-- diretórios temp são limpos após cada snap processado
+Fontes de verdade:
+- `CONTEXT.md` (estado atual)
+- `prompts/masters/master-tecnico.md`
+- `prompts/masters/master-produto-snap.md`
 
 ---
 
-#### Slice 5 — Hardening de contrato e segurança
+## Estado atual (fevereiro 2026)
 
-Itens:
-- **I5** — Mensagem genérica em 500 + log de stack trace no handler
-  - `GlobalExceptionHandler`: body com `"Internal server error"`, `log.error("...", ex)` no 5xx
-- **I2** — Race condition em `resolveOrCreateVideo` (upsert otimista)
-  - try/catch de `DataIntegrityViolationException` → re-busca o registro existente
-- **I4** — Proteger `/internal/observability/*`
-  - restringir por rede (nginx/proxy) ou verificar token de assinatura nos headers
-- **I7** — `POST /v2/snaps` retornar `201 Created` (async: `202 Accepted`)
-- **I1** — Comparação de `api_token` timing-safe
-  - usar `MessageDigest.isEqual(token1.getBytes(), token2.getBytes())`
-- **I6** — Mapear `MissingServletRequestParameterException` no `GlobalExceptionHandler`
-- **I3** — Documentar comportamento de `resolveUsuario` em requests paralelos
-  - decidir: "última gravação vence" ou `SELECT FOR UPDATE`; adicionar `updated_at` na entidade
-- **M1** — Remover `outputDir` do `SnapResponse` público
-- **M2** — Remover `lockOwner`/`lockedAt` do `SnapJobResponse`
-
-Critério de aceite:
-- nenhuma mensagem interna de servidor exposta em 5xx
-- requests paralelos com mesma URL não resultam em 500
-- POST retorna 201/202 conforme modo
-- tokens de API comparados com segurança
+- Entrega 1 — CONCLUÍDA
+- Entrega 2 — CONCLUÍDA
+- Entrega 3 — CONCLUÍDA
+- Entrega 4 — CONCLUÍDA (slices 1-8)
+  - Slices 1-3: fila DB + worker + async por feature flag
+  - Slice prereq B1-B4: CONCLUÍDO em 2026-02-26 (ver `prompts/entregas/entregas-api-snap-v2.md`)
+  - Slice 5 — hardening contrato/segurança: CONCLUÍDO em 2026-02-26 (I1-I7, M1-M2)
+  - Slice 6 — rollout async como padrão: CONCLUÍDO em 2026-02-26
+  - Slice 7 — worker hardening: CONCLUÍDO em 2026-02-26
+  - Slice 8 — telemetria externa (Actuator): CONCLUÍDO em 2026-02-26
+  - Próximo: Entrega 5 — Storage S3 (Linode Object Storage)
 
 ---
 
-#### Slice 6 — Rollout do modo assíncrono como padrão
+## Prioridade imediata: ir para produção (Olho do Dono)
 
-- Tornar `app.snap.asyncCreateEnabled=true` o padrão em produção
-- Validar `GET /v2/snaps/{id}` como polling de estado sob carga leve
-- Atualizar README com fluxo assíncrono como padrão
-- Atualizar exemplos `http/*.http`
+Antes de qualquer nova funcionalidade, o objetivo é estabilizar
+o que existe e colocar em produção para a equipe do Olho do Dono.
 
-Critério de aceite:
-- `POST` retorna `202` imediatamente em produção
-- `GET` retorna estado correto durante processamento e resultado final
-
----
-
-#### Slice 7 — Hardening do worker
-
-- Heartbeat/renovação de lock para jobs longos (evitar reprocessamento indevido)
-- `workerInstanceId` dinâmico via `${HOSTNAME:local-worker}` ou UUID por instância
-- Tuning de concorrência e `claimSize` para Linode 2GB
-- Documentar limites operacionais
-
-Critério de aceite:
-- jobs longos não são reprocessados indevidamente
-- `claimed_by` identifica a instância corretamente nos logs
+Sequência de produção:
+1. Ativar storage S3 (Linode Object Storage)
+2. Hardening operacional
+3. SubjectTemplate de bovinos + smoke test com vídeos reais
 
 ---
 
-#### Slice 8 — Telemetria externa básica
+## Simplificações aceitas (fase atual)
 
-- Actuator com `/actuator/health` e `/actuator/metrics` expostos
-- Métricas de jobs (processados, falhos, tempo médio) via Actuator/Micrometer
-- Logs estruturados com `X-Request-Id` em todas as saídas
-- `requestId` truncado a 64 chars no `RequestCorrelationFilter` (item M3)
+- 1 assinatura default já criada
+- 1 template default (+ template bovinos para Olho do Dono)
+- Sem autenticação/login completo
+- Identidade por nickname + email
+- Processamento assíncrono já padrão (`asyncCreateEnabled=true`)
+- Storage S3 Linode (substituir local)
+
+## Regras que permanecem obrigatórias
+
+- Snap é a entidade principal
+- startFrame tem precedência sobre startSeconds
+- subject.id faz fallback para snapId
+- snapshotDurationSeconds com fallback para durationSeconds
+- ffprobe para compatibilidade + motivo de falha
+- assinatura_id em todas as tabelas (preparado para multi-tenant)
+
+---
+
+## Entrega 4 — Assíncrono como padrão (PRIORIDADE MÁXIMA)
+
+### O que já foi implementado (slices 1-3 + prereq B1-B4)
+
+- Tabela snap_processing_job com migration Flyway
+- Worker local com polling e claim via FOR UPDATE SKIP LOCKED
+- POST /v2/snaps assíncrono por feature flag
+- GET /v2/snaps/{id} como polling de estado/resultado
+- Campo job em SnapResponse
+- Retentativas com backoff exponencial
+- Recuperação de jobs RUNNING órfãos (stale lock timeout)
+- Cleanup agendado de jobs terminais
+- /internal/observability/snap-job-metrics
+- Testes de integração cobrindo async, retry, stale recovery, cleanup
+- Arquivos http/*.http atualizados
+- **Prereq B1-B4 CONCLUÍDO (2026-02-26):** paginação nativa (OffsetBasedPageRequest+Slice),
+  datediff→extract epoch, @Lob→@Column(text)+migrations, cleanup temp no finally
+
+### Slices finais (concluídos)
+
+#### Slice 5 — Hardening de contrato e segurança — CONCLUÍDO 2026-02-26
+
+I1 (timing-safe token), I2 (upsert resolveOrCreateVideo), I3 (upsert resolveUsuario),
+I4 (InternalApiTokenInterceptor /internal/**), I5 (500 genérico + log),
+I6 (MissingServletRequestParameterException → 400), I7 (201/202 em POST),
+M1 (outputDir removido do SnapResponse), M2 (lockOwner/lockedAt removidos do SnapJobResponse).
+Resultado: 31 testes, 0 falhas.
+
+#### Slice 6 — Rollout do modo assíncrono como padrão — CONCLUÍDO 2026-02-26
+
+`asyncCreateEnabled=true` default; testes sync fixados; `.run/Sync` atualizado; http/*.http e README atualizados. 31 testes, 0 falhas.
+
+#### Slice 7 — Hardening do worker — CONCLUÍDO 2026-02-26
+
+workerInstanceId=${HOSTNAME:local-worker}; heartbeatRunningJobs() @Scheduled(30s); refreshLockedAtForRunningOwner @Modifying JPQL; workerHeartbeatIntervalMs=30000; constraints documentados. 31 testes, 0 falhas.
 
 Critério de aceite:
+- Jobs longos não são reprocessados indevidamente
+- claimed_by identifica a instância corretamente nos logs
+
+#### Slice 8 — Telemetria externa básica — CONCLUÍDO 2026-02-26
+
+- Actuator com /actuator/health e /actuator/metrics expostos
+- Métricas de jobs no Actuator (`snap.jobs.*`: processados/completed, falhos, tempo médio)
+- Logs estruturados com X-Request-Id em todas as saídas
+- Truncamento de `X-Request-Id` para 64 chars (correlação/logs)
+
+Resultado: 33 testes, 0 falhas.
+
+Critério de aceite: 
 - Health check funcional para docker-compose
 - Métricas básicas acessíveis via Actuator
 
 ---
 
-### Pendências de plano/documentação
+## Entrega 5 — Storage S3 (Linode Object Storage)
 
-- refletir a decisão de rollout (quando definida) em `master-tecnico.md` e neste plano
-- registrar ADR se houver mudança estrutural no contrato de progresso/job
-- manter exemplos `.http` e README sincronizados quando o modo async virar padrão
-- marcar itens como FEITO em `prompts/estudos/claude/revisao-tecnica-pre-producao.md`
-  conforme cada slice for concluído
+### Meta
 
-## Cronograma resumido (API somente)
+Substituir storage local por Linode Object Storage para produção.
 
-Começando hoje:
+### Prazo estimado
 
-- **Entrega 1**: 4 a 6 dias úteis
-- **Entrega 2**: +3 a 4 dias úteis
-- **Entrega 3**: +2 a 5 dias úteis
+2 a 3 dias úteis
 
-Total para v1 síncrona muito boa (sem player, sem auth completa):
-- **9 a 15 dias úteis**
+### Escopo
 
-## Checklists de execução
+- Ativar StorageService com AWS SDK v2
+- Configurar endpoint, bucket e credenciais via variáveis de ambiente
+- Chaves de storage:
+  - frames: {prefix}/frames/{snapId}/frame_00001.jpg
+  - snapshot: {prefix}/snapshots/{snapId}/snapshot.mp4
+- URL pública: publicBaseUrl + key
+- Limpeza de temp sempre após upload bem-sucedido
+- Fallback para storage local em desenvolvimento (app.storage.local.enabled)
+- Testes de integração com mock S3 (Testcontainers LocalStack ou similar)
+- docker-compose de produção com variáveis de ambiente via .env
+- README atualizado com configuração de produção
 
-## Checklist Entrega 1
+### Critérios de aceite
 
-- DDL/Flyway das tabelas mínimas
-- seeds (`assinatura default`, `template default`)
-- endpoint `POST /v2/snaps`
-- endpoint `GET /v2/snaps/{id}`
-- endpoint `GET /v2/videos/{videoId}/snaps`
-- busca básica por subject (ou `subjectId` mínimo)
-- testes de serviço e controller
-- smoke test com vídeo real
-- documentação/README atualizados, arquivos `http/*.http` atualizados e comentários detalhados no código da entrega
+- Frames e snapshot.mp4 sobem para o bucket Linode
+- URLs retornadas no snap são públicas e acessíveis
+- Temp folder removida após upload bem-sucedido
+- Storage local continua funcionando em desenvolvimento
+- Credenciais nunca no código (sempre via env vars)
 
-## Checklist Entrega 2
+---
 
-- share público (`POST` + `GET`)
-- listagens “mine”
-- busca `subject` refinada
-- testes de integração dos endpoints públicos
+## Entrega 6 — Hardening operacional e deploy
 
-## Checklist Entrega 3
+### Meta
 
-- abstração de contexto de assinatura
-- preparação para token
-- paginação/ordenação padronizadas
-- observabilidade mínima
+Ambiente de produção estável e documentado para Olho do Dono.
 
-Status de execução atual:
-- concluído: abstração de contexto de assinatura
-- concluído: preparação para token (feature flag)
-- concluído: paginação/ordenação padronizadas (`offset`, `limit`, `sortBy`, `sortDir` + `page` metadata)
-- concluído: observabilidade mínima (`X-Request-Id`, access logs, error logs centralizados, snapshot interno HTTP)
+### Prazo estimado
+
+2 a 3 dias úteis
+
+### Escopo
+
+- docker-compose.prod.yml separado do de desenvolvimento
+  - Sem volumes de código
+  - Variáveis de ambiente via .env
+  - restart: unless-stopped
+  - Limites de CPU e memória (Linode 2GB)
+  - Health check via /actuator/health
+  - Volume dedicado para /data/tmp
+- Dockerfile revisado para produção
+  - Usuário não-root
+  - Imagem mínima com Java 17 + FFmpeg + fontes
+  - HEALTHCHECK configurado
+- Validações de configuração na inicialização
+  - Falhar rápido se variáveis obrigatórias ausentes
+- README de produção completo
+  - Pré-requisitos
+  - Configuração de variáveis de ambiente
+  - Comandos de deploy
+  - Comandos de manutenção (restart, logs, backup)
+
+### Critérios de aceite
+
+- docker-compose up funciona em servidor limpo seguindo o README
+- Aplicação reinicia automaticamente após crash
+- Health check retorna 200 quando tudo está OK
+- Logs acessíveis via docker logs
+- Nenhuma credencial no código ou docker-compose commitado
+
+---
+
+## Entrega 7 — SubjectTemplate Olho do Dono + validação
+
+### Meta
+
+Template específico para bovinos e validação com vídeos reais
+da operação do Olho do Dono.
+
+### Prazo estimado
+
+1 a 2 dias úteis
+
+### Escopo
+
+- Seed ou migration com SubjectTemplate de bovinos:
+  ```json
+  {
+    "nome": "Bovino — Olho do Dono",
+    "slug": "bovino_odd",
+    "is_default": false,
+    "campos": [
+      { "key": "brinco", "type": "string", "obrigatorio": true },
+      { "key": "raca", "type": "string", "obrigatorio": true },
+      { "key": "sexo", "type": "string", "obrigatorio": true },
+      { "key": "peso_referencia", "type": "number", "obrigatorio": false },
+      { "key": "condicao_corporal", "type": "string", "obrigatorio": false },
+      { "key": "lote", "type": "string", "obrigatorio": false },
+      { "key": "pasto", "type": "string", "obrigatorio": false },
+      { "key": "observacoes", "type": "string", "obrigatorio": false }
+    ]
+  }
+  ```
+- Smoke test com vídeos reais da operação
+- Validação de performance no servidor de produção
+- Ajustes de configuração baseados em vídeos reais
+  (resolução, duração, FPS, largura máxima)
+
+### Critérios de aceite
+
+- Template de bovinos disponível por subjectTemplateId
+- Snap criado com template de bovinos persiste atributos corretamente
+- Smoke test com vídeo real da Olho do Dono passa sem erros
+- Performance aceitável para o fluxo de uso esperado
+
+---
+
+## Cronograma resumido (atualizado 2026-02-26)
+
+| Entrega | Foco | Status | Estimativa restante |
+|---|---|---|---|
+| Entrega 4 — prereq (slices 1-4) | Correções bloqueantes B1-B4 | ✓ CONCLUÍDO | — |
+| Entrega 4 — slices 5-8 | Hardening contrato + async padrão + worker + Actuator | ✓ CONCLUÍDO (2026-02-26) | — |
+| Entrega 5 | Storage S3 Linode | PENDENTE | 2-3 dias úteis |
+| Entrega 6 | Hardening operacional + deploy | PENDENTE | 2-3 dias úteis |
+| Entrega 7 | Template bovinos + validação | PENDENTE | 1-2 dias úteis |
+
+**Total estimado para produção: 5 a 8 dias úteis**
+
+---
+
+## Fora do escopo agora (fase futura)
+
+Decidido para após estabilização em produção:
+
+- Integração com Anthropic API (sugestão de atributos por IA)
+- Análise diferencial com imagens de referência
+- Geração automática de laudo
+- Sessão de inspeção (snap_session)
+- Vertical de petróleo e gás / inspeção industrial
+- Player Flutter
+- Autenticação completa
+- Multi-assinatura operacional
+
+---
 
 ## Política de atualização dos planos
 
-### Quando atualizar `master-tecnico.md`
-
-Atualizar quando mudar:
-- arquitetura de processamento (FFmpeg/worker/storage)
-- regras técnicas globais
-- contrato técnico base de processamento
-
-### Quando atualizar `master-produto-snap.md`
-
-Atualizar quando mudar:
-- regras de produto
-- domínio (`Snap`, `Video`, `Assinatura`, `Usuário`, `Template`)
-- visibilidade/permissão
-- fluxos do player/API
-
-### Quando atualizar `entregas-api-snap-v2.md`
-
-Atualizar quando mudar:
-- escopo de uma entrega
-- prioridade
-- sequenciamento
-- estimativa
-- critério de aceite operacional
+- Regra nova de negócio/arquitetura =>
+  atualizar master-tecnico.md ou master-produto-snap.md primeiro
+- Mudança de escopo/prioridade =>
+  atualizar este arquivo
+- Mudança de estratégia comercial =>
+  atualizar master-monetizacao.md
+- CONTEXT.md sempre reflete o estado atual real

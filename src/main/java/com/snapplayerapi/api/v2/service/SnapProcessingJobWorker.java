@@ -83,6 +83,31 @@ public class SnapProcessingJobWorker {
     }
 
     /**
+     * Heartbeat: renews {@code locked_at} for all {@code RUNNING} jobs owned by this instance.
+     *
+     * <p>Prevents stale-recovery from reclaiming jobs that are still actively executing FFmpeg.
+     * The interval ({@code workerHeartbeatIntervalMs}) must be well below
+     * {@code workerLockTimeoutSeconds} so at least one renewal occurs before the lock expires.
+     * Recommended rule of thumb: {@code heartbeatInterval < lockTimeout / 3}.</p>
+     *
+     * <p>The method is a no-op when {@code workerEnabled=false}, making it safe to keep the
+     * scheduler active in tests with the feature disabled.</p>
+     */
+    @Scheduled(fixedDelayString = "${app.snap.workerHeartbeatIntervalMs:30000}")
+    public void heartbeatRunningJobs() {
+        if (!snapProperties.isWorkerEnabled()) {
+            return;
+        }
+        String instanceId = snapProperties.getWorkerInstanceId();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        Integer refreshed = transactionTemplate.execute(status ->
+                jobRepository.refreshLockedAtForRunningOwner(instanceId, now));
+        if (refreshed != null && refreshed > 0) {
+            log.debug("snap_job_heartbeat instance={} refreshed={}", instanceId, refreshed);
+        }
+    }
+
+    /**
      * Processes up to `workerBatchSize` claimable jobs.
      *
      * <p>This method is public on purpose so integration tests and internal tools can invoke one

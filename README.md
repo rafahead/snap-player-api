@@ -22,7 +22,7 @@ Fases/entregas planejadas (API):
 - `Entrega 1`: API `Snap`-first síncrona (sem player, sem auth, storage local)
 - `Entrega 2`: compartilhamento público + listas `mine`
 - `Entrega 3`: base para multi-assinatura/token/paginação/observabilidade mínima
-- `Entrega 4`: migração para processamento assíncrono com worker/DB (iniciada; slices 1-3 de fila local/worker/retry/cleanup/telemetria)
+- `Entrega 4`: migração para processamento assíncrono com worker/DB (slices 1-8 concluídos: fila/worker/retry/cleanup/telemetria + correções B1-B4 + hardening I1-I7 + rollout async + heartbeat + Actuator)
 
 Regra de atualização dos planos:
 1. atualizar `master` correto (`técnico` ou `produto`)
@@ -36,7 +36,7 @@ Regra de atualização dos planos:
 - `Entrega 1` da API `v2` implementada (Snap-first síncrona com persistência local em banco + Flyway)
 - `Entrega 2` da API `v2` implementada (share público + listas `mine`)
 - `Entrega 3` da API `v2` implementada (contexto de assinatura + token por feature flag + paginação/ordenação + observabilidade mínima)
-- `Entrega 4` (slices 1-3) implementada parcialmente: fila em banco (`snap_processing_job`) + worker local com `SKIP LOCKED` + modo assíncrono opcional no `POST /v2/snaps` + retry/backoff/stale-recovery + cleanup + telemetria de jobs
+- `Entrega 4` (slices 1-8) implementada: fila em banco + worker local + retry/backoff + stale-recovery + cleanup + telemetria de jobs + correções bloqueantes pré-Postgres (B1-B4) + hardening de contrato/segurança (I1-I7) + **modo assíncrono ativo por padrão** (`asyncCreateEnabled=true`) + heartbeat de lock + Actuator (`/actuator/health`, `/actuator/metrics`)
 - `Master plan` documentado para evolucao assíncrona com PostgreSQL, workers e storage S3
 
 Arquivos de plano:
@@ -348,20 +348,23 @@ Exemplo de snapshot de observabilidade HTTP (Entrega 3 item 4):
 curl -sS http://127.0.0.1:8080/internal/observability/http-metrics
 ```
 
-## Entrega 4 (parcial / slices 1-3) - Fila em banco + worker local + retry/cleanup/telemetria
+## Entrega 4 (slices 1-8) - Fila em banco + worker + async + Actuator
 
 Implementado nesta etapa:
 - migration `V3` com fila `snap_processing_job`
 - worker local de polling em banco com claim via `FOR UPDATE SKIP LOCKED`
-- `POST /v2/snaps` com modo assíncrono opcional (feature flag)
-  - quando `app.snap.asyncCreateEnabled=false` (padrão): mantém comportamento síncrono atual
-  - quando `app.snap.asyncCreateEnabled=true`: retorna `status=PENDING` e enfileira job
+- `POST /v2/snaps` com modo assíncrono **ativo por padrão** (Slice 6)
+  - retorna `202 Accepted` com `status=PENDING` e enfileira job
+  - para modo síncrono local: `--app.snap.asyncCreateEnabled=false` (config `.run/Snap Player API (Sync)`)
 - `GET /v2/snaps/{snapId}` preservado como endpoint de polling de estado/resultados
 - `SnapResponse` (create/get by id) agora inclui objeto opcional `job` com estado da fila/worker
 - retentativas com backoff exponencial e cap (`RETRY_WAIT`)
 - recuperação de jobs `RUNNING` órfãos/stale por timeout de lock
 - cleanup agendado de rows terminais antigos em `snap_processing_job` (retention-based)
 - telemetria interna de jobs via endpoint `/internal/observability/snap-job-metrics`
+- Actuator exposto com `/actuator/health` e `/actuator/metrics` (Slice 8)
+- métricas customizadas de jobs no Actuator (`snap.jobs.*`)
+- truncamento de `X-Request-Id` para 64 chars (correlação/logs)
 
 Propriedades adicionadas (`app.snap.*`):
 - `asyncCreateEnabled`
@@ -389,7 +392,7 @@ Fluxo assíncrono (modo ativo):
 7. cliente faz polling em `GET /v2/snaps/{snapId}`
 
 Observações:
-- mudança é protegida por feature flag para rollout gradual
+- modo assíncrono é o padrão desde Slice 6 (`asyncCreateEnabled=true`)
 - contrato de `SnapResponse` foi preservado; campos de processamento ficam nulos/vazios enquanto `PENDING`
 - o campo `job` é aditivo e expõe estado operacional sem quebrar clientes existentes
 - busca/listagens podem retornar snaps `PENDING` (útil para UX de fila/progresso)
@@ -397,8 +400,7 @@ Observações:
 
 Campos de `SnapResponse.job` (quando disponíveis):
 - `jobId`, `status`, `attempts`, `maxAttempts`
-- `nextRunAt`, `lockedAt`, `lockOwner`
-- `startedAt`, `finishedAt`
+- `nextRunAt`, `startedAt`, `finishedAt`
 - `lastError`
 
 Status de job observáveis (internos/async):
@@ -412,7 +414,30 @@ Exemplo de snapshot de telemetria de jobs (Entrega 4 slice 3):
 
 ```bash
 curl -sS http://127.0.0.1:8080/internal/observability/snap-job-metrics
+# Em produção com token configurado:
+# curl -sS -H 'X-Internal-Token: <token>' http://host/internal/observability/snap-job-metrics
 ```
+
+## Entrega 4 (slices 4-5) - Correções bloqueantes + hardening de contrato e segurança
+
+### Slice 4 — Correções pré-Postgres
+
+- **B1** — Paginação nativa no banco: `OffsetBasedPageRequest` + `Slice<T>` em todas as queries; sem COUNT total (ADR 0006)
+- **B2** — Sintaxe PostgreSQL em `terminalDurationSummary`: `datediff(H2)` → `EXTRACT(EPOCH FROM ...)`
+- **B3** — Substituição de `@Lob` por `@Column(columnDefinition = "text")` em todas as entidades com colunas JSON; migrations `clob` → `text`
+- **B4** — Cleanup de diretório temp no `finally` do processamento: `TempStorageService.deleteRecursively()`
+
+### Slice 5 — Hardening de contrato e segurança
+
+- **I1** — Comparação timing-safe de `api_token` com `MessageDigest.isEqual`
+- **I2** — Upsert otimista em `resolveOrCreateVideo` (catch `DataIntegrityViolationException` → re-fetch)
+- **I3** — Upsert otimista em `resolveUsuario`; decisão "última escrita vence" documentada
+- **I4** — `InternalApiTokenInterceptor` protege `/internal/**`; token via `app.internal.accessToken` (blank = aberto em dev)
+- **I5** — `GlobalExceptionHandler`: 5xx retorna `"Internal server error"` genérico + `log.error` com stack trace
+- **I6** — `MissingServletRequestParameterException` → 400 no formato `ApiErrorResponse`
+- **I7** — `POST /v2/snaps` retorna `201 Created` (sync) ou `202 Accepted` (async)
+- **M1** — `outputDir` removido de `SnapResponse` (não expõe filesystem do servidor)
+- **M2** — `lockOwner`/`lockedAt` removidos de `SnapJobResponse` (diagnóstico interno, não contrato público)
 
 O snapshot inclui, entre outros:
 - `claimedCount`
@@ -427,22 +452,14 @@ O snapshot inclui, entre outros:
 
 ### Código (próximas entregas/slices)
 
-- decidir rollout do modo assíncrono por ambiente (quando ativar `app.snap.asyncCreateEnabled=true` por padrão)
-- validar smoke manual completo em modo assíncrono (create/polling/share/public/métricas)
-- avaliar endpoint de progresso dedicado (se necessário para payload menor no player)
-- endurecimento para múltiplos workers (heartbeat de lock, tuning de claim/concurrency)
-- telemetria externa (Actuator/Prometheus/OpenTelemetry) e operação alvo (PostgreSQL + S3 + worker separado)
+- **Entrega 5** — Storage S3 (Linode Object Storage): substituir storage local; upload de frames e snapshot.mp4; fallback local para desenvolvimento
+- **Entrega 6** — Hardening operacional: docker-compose de produção separado; PostgreSQL real; health check; limites de recursos
+- **Entrega 7** — SubjectTemplate de bovinos + smoke test com vídeos reais do Olho do Dono
 
 ### Planos / documentação
 
-- manter `prompts/entregas/entregas-api-snap-v2.md` atualizado com os próximos slices da Entrega 4
-- revisar `prompts/estudos/player-integracao.md` conforme integração real do `snap-player` avançar
+- manter `prompts/entregas/entregas-api-snap-v2.md` atualizado com os próximos slices
 - registrar ADRs quando houver mudança estrutural em progresso/job/operação
-
-### Estrutura de `prompts/` (avaliação)
-
-- a reorganização incremental de `prompts/` foi aplicada (subpastas `masters/`, `entregas/`, `estudos/`, `templates/`)
-- a governança e a estrutura atual estão documentadas em `prompts/README.md`
 
 ## Exemplo de Chamada (Com Overlay e Subject)
 

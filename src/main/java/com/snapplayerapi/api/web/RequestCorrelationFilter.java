@@ -31,6 +31,7 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
      * Header used for request correlation.
      */
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
+    private static final int MAX_REQUEST_ID_LENGTH = 64;
 
     private static final Logger log = LoggerFactory.getLogger(RequestCorrelationFilter.class);
 
@@ -69,12 +70,20 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
 
     /**
      * Reuses a client-provided request id when present, otherwise generates one.
+     * Caps the value to 64 chars to avoid oversized MDC/log fields.
      */
     private static String resolveRequestId(HttpServletRequest request) {
         String incoming = request.getHeader(REQUEST_ID_HEADER);
         if (incoming != null && !incoming.isBlank()) {
-            return incoming.strip();
+            return truncateRequestId(incoming.strip());
         }
-        return UUID.randomUUID().toString().replace("-", "");
+        return truncateRequestId(UUID.randomUUID().toString().replace("-", ""));
+    }
+
+    private static String truncateRequestId(String requestId) {
+        if (requestId.length() <= MAX_REQUEST_ID_LENGTH) {
+            return requestId;
+        }
+        return requestId.substring(0, MAX_REQUEST_ID_LENGTH);
     }
 }

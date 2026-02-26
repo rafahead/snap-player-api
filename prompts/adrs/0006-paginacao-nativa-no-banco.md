@@ -61,6 +61,6 @@ validada ou usar `Sort` do Spring Data com campos mapeados.
 
 ## Relação com planos
 
-- Revisão técnica: `prompts/estudos/claude/revisao-tecnica-pre-producao.md` (item B1)
+- Revisão técnica: `prompts/masters/revisao-tecnica-pre-producao.md` (item B1)
 - Execução: `prompts/entregas/entregas-api-snap-v2.md` (Entrega 4, Slice 4)
 - Arquitetura técnica: `prompts/masters/master-tecnico.md`

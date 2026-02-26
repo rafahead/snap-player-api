@@ -92,9 +92,21 @@ public class SnapProperties {
     /**
      * Marks `RUNNING` jobs as stale when no heartbeat/lock refresh is seen beyond this timeout.
      *
-     * <p>Entrega 4 slice 2 uses this to recover jobs abandoned by crashes/restarts.</p>
+     * <p>Must be greater than `workerHeartbeatIntervalMs` — a rule of thumb is
+     * `workerLockTimeoutSeconds ≥ workerHeartbeatIntervalMs / 1000 * 3`.
+     * With the default heartbeat of 30 s, a timeout of 120 s provides 4 heartbeat windows
+     * before a job is declared stale, tolerating transient DB slowness.</p>
      */
     private long workerLockTimeoutSeconds = 120L;
+
+    /**
+     * Interval between heartbeat cycles (milliseconds).
+     *
+     * <p>Each cycle updates `locked_at` for all `RUNNING` jobs owned by this instance,
+     * preventing stale-recovery from reclaiming jobs that are still actively executing.
+     * Rule of thumb: {@code workerHeartbeatIntervalMs < workerLockTimeoutSeconds * 1000 / 3}.</p>
+     */
+    private long workerHeartbeatIntervalMs = 30000L;
 
     /**
      * Enables periodic cleanup of terminal job rows (`COMPLETED`/`FAILED`) older than retention.
@@ -264,6 +276,14 @@ public class SnapProperties {
 
     public void setJobCleanupBatchSize(int jobCleanupBatchSize) {
         this.jobCleanupBatchSize = jobCleanupBatchSize;
+    }
+
+    public long getWorkerHeartbeatIntervalMs() {
+        return workerHeartbeatIntervalMs;
+    }
+
+    public void setWorkerHeartbeatIntervalMs(long workerHeartbeatIntervalMs) {
+        this.workerHeartbeatIntervalMs = workerHeartbeatIntervalMs;
     }
 
     public String getWorkerInstanceId() {

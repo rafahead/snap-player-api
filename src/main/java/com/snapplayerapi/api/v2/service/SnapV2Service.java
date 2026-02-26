@@ -58,6 +58,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.JpaSort;
@@ -734,7 +735,9 @@ public class SnapV2Service {
         }
 
         String providedToken = assinaturaToken.strip();
-        if (!Objects.equals(expectedToken, providedToken)) {
+        if (!MessageDigest.isEqual(
+                expectedToken.getBytes(StandardCharsets.UTF_8),
+                providedToken.getBytes(StandardCharsets.UTF_8))) {
             throw new UnauthorizedException("Invalid assinatura API token");
         }
     }
@@ -742,6 +745,11 @@ public class SnapV2Service {
     /**
      * Resolves an existing user by email or creates one, updating nickname snapshots when the
      * user keeps the same email but changes the display nickname.
+     *
+     * <p>Concurrent creation with the same email: the unique index {@code uk_usuario_email} prevents
+     * duplicates. If a race causes a {@link DataIntegrityViolationException} during insert, the
+     * method re-fetches the winner row (optimistic upsert). Nickname updates follow "last write wins"
+     * — acceptable because nickname is a display name with no security implication.</p>
      */
     private UsuarioEntity resolveUsuario(String nickname, String email, OffsetDateTime now) {
         String normalizedEmail = email.strip().toLowerCase(Locale.ROOT);
@@ -760,7 +768,13 @@ public class SnapV2Service {
         usuario.setEmail(normalizedEmail);
         usuario.setStatus("ACTIVE");
         usuario.setCreatedAt(now);
-        return usuarioRepository.save(usuario);
+        try {
+            return usuarioRepository.save(usuario);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent request with the same email won the race — re-fetch the winner.
+            return usuarioRepository.findByEmail(normalizedEmail)
+                    .orElseThrow(() -> new IllegalStateException("Usuario not found after constraint conflict", e));
+        }
     }
 
     /**
@@ -797,18 +811,25 @@ public class SnapV2Service {
         String videoUrl = requireVideoUrl(videoUrlRaw);
         String canonicalUrl = canonicalizeUrl(videoUrl);
         String hash = sha256(canonicalUrl);
-        return videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash)
-                .orElseGet(() -> {
-                    VideoEntity video = new VideoEntity();
-                    video.setId(UUID.randomUUID());
-                    video.setAssinaturaId(assinaturaId);
-                    video.setOriginalUrl(videoUrl);
-                    video.setCanonicalUrl(canonicalUrl);
-                    video.setUrlHash(hash);
-                    video.setCreatedByUsuarioId(usuarioId);
-                    video.setCreatedAt(now);
-                    return videoRepository.save(video);
-                });
+        Optional<VideoEntity> existing = videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        VideoEntity video = new VideoEntity();
+        video.setId(UUID.randomUUID());
+        video.setAssinaturaId(assinaturaId);
+        video.setOriginalUrl(videoUrl);
+        video.setCanonicalUrl(canonicalUrl);
+        video.setUrlHash(hash);
+        video.setCreatedByUsuarioId(usuarioId);
+        video.setCreatedAt(now);
+        try {
+            return videoRepository.save(video);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent request with the same URL won the race — re-fetch the winner.
+            return videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash)
+                    .orElseThrow(() -> new IllegalStateException("Video not found after constraint conflict", e));
+        }
     }
 
     /**
@@ -866,7 +887,6 @@ public class SnapV2Service {
                 readJsonOrNull(snap.getSnapshotVideoJson(), ProcessingSnapshotVideoResponse.class),
                 snap.getFrameCount(),
                 readJson(snap.getFramesJson(), FRAMES_TYPE),
-                snap.getOutputDir(),
                 snap.getErrorMessage(),
                 job,
                 snap.getCreatedAt(),
@@ -885,8 +905,6 @@ public class SnapV2Service {
                         job.getAttempts(),
                         job.getMaxAttempts(),
                         job.getNextRunAt(),
-                        job.getLockedAt(),
-                        job.getLockOwner(),
                         job.getStartedAt(),
                         job.getFinishedAt(),
                         job.getLastError()

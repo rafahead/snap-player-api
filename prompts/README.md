@@ -218,23 +218,22 @@ Situação resumida da implementação (com base no código e no plano):
 - `Entrega 1`: concluída (API `v2` Snap-first síncrona)
 - `Entrega 2`: concluída (share público + listas `mine`)
 - `Entrega 3`: concluída (assinatura no request, token por feature flag, paginação/ordenação, observabilidade mínima)
-- `Entrega 4`: em andamento (slices 1-3 implementados: fila em DB, worker local, retry/backoff, recuperação de stale lock, cleanup e telemetria de jobs)
+- `Entrega 4`: concluída (slices 1-8: fila em DB, worker local, retry/backoff, stale recovery, cleanup, hardening, async padrão, heartbeat e Actuator)
 
 ## Pendências consolidadas (código)
 
 ### Curto prazo (mais provável próxima execução)
 
-- decidir quando ativar `app.snap.asyncCreateEnabled=true` por padrão em dev/homolog
-- validar smoke manual completo em modo assíncrono (create -> polling -> share/public -> métricas)
-- avaliar necessidade de endpoint de progresso dedicado (payload menor que `GET /v2/snaps/{id}`)
+- ativar storage S3 (Linode Object Storage) para produção
+- validar smoke manual completo em modo assíncrono com Actuator (`/actuator/health`, `/actuator/metrics`)
+- preparar docker-compose de produção com health check e limites de recursos
 
-### Médio prazo (Entrega 4 / endurecimento)
+### Médio prazo (produção / pós-Entrega 4)
 
 - endurecimento para ambiente distribuído:
-  - heartbeat/refresh de lock durante jobs longos
   - tuning de claim/batch/timeout por ambiente
   - estratégia de idempotência/reprocessamento explícita
-- telemetria externa (Actuator/Prometheus/OpenTelemetry) substituindo snapshots in-memory
+- Prometheus/OpenTelemetry (sobre Actuator) para telemetria externa mais completa
 - persistência/infra alvo do master técnico:
   - PostgreSQL
   - storage S3 compatível
@@ -248,7 +247,7 @@ Situação resumida da implementação (com base no código e no plano):
 
 ## Pendências consolidadas (planos/documentação)
 
-- manter `prompts/entregas/entregas-api-snap-v2.md` como espelho fiel do progresso da Entrega 4 (slices e critérios operacionais)
+- manter `prompts/entregas/entregas-api-snap-v2.md` como espelho fiel do progresso das Entregas 5-7 (produção)
 - revisar `prompts/estudos/player-integracao.md` para refletir nomenclatura `snap-player` e integração com `v2` assíncrona
 - quando houver decisão estrutural nova (ex.: progresso dedicado / worker externo), registrar ADR novo antes da implementação
 - manter `http/*.http` atualizado a cada endpoint/parâmetro novo (regra já vigente)

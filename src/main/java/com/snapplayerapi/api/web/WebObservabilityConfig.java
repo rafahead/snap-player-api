@@ -11,13 +11,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebObservabilityConfig implements WebMvcConfigurer {
 
     private final HttpObservabilityInterceptor httpObservabilityInterceptor;
+    private final InternalApiTokenInterceptor internalApiTokenInterceptor;
 
-    public WebObservabilityConfig(HttpObservabilityInterceptor httpObservabilityInterceptor) {
+    public WebObservabilityConfig(
+            HttpObservabilityInterceptor httpObservabilityInterceptor,
+            InternalApiTokenInterceptor internalApiTokenInterceptor
+    ) {
         this.httpObservabilityInterceptor = httpObservabilityInterceptor;
+        this.internalApiTokenInterceptor = internalApiTokenInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(httpObservabilityInterceptor);
+        registry.addInterceptor(internalApiTokenInterceptor).addPathPatterns("/internal/**");
     }
 }

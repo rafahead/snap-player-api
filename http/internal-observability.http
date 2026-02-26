@@ -6,6 +6,8 @@
 ### Endpoints internos:
 ### - `GET /internal/observability/http-metrics`
 ### - `GET /internal/observability/snap-job-metrics`
+### - `GET /actuator/health` (Slice 8)
+### - `GET /actuator/metrics` (Slice 8)
 ###
 ### O endpoint retorna agregados por `método + rota` (pattern do Spring),
 ### incluindo contagem, erros e latência média/máxima.
@@ -13,18 +15,26 @@
 ### O snapshot de jobs retorna contadores de worker (`claimed`, `retryScheduled`,
 ### `staleRecovered`, `cleanupDeleted`), totais terminais (`completed`, `failed`)
 ### e latência terminal média/máxima.
+###
+### Proteção `/internal/**` (Slice 5 / I4):
+### - Quando `app.internal.accessToken` está vazio (padrão dev), os endpoints são abertos.
+### - Em produção, configurar via env var e enviar `X-Internal-Token: <token>` nas chamadas.
+### - Preencha `@internalToken` abaixo para testar com token ativo.
 
 @baseUrl = http://127.0.0.1:8080
 @assinaturaCodigo = default
+@internalToken =
 
 ### GET HTTP Metrics Snapshot (interno)
 GET {{baseUrl}}/internal/observability/http-metrics
 X-Request-Id: observability-metrics-001
+# X-Internal-Token: {{internalToken}}
 
 ### GET Snap Job Metrics Snapshot (interno / Entrega 4 slice 2-3)
 ### Dica: rode fluxo async em `http/v2-snaps.http` antes, para popular os contadores.
 GET {{baseUrl}}/internal/observability/snap-job-metrics
 X-Request-Id: observability-snap-job-metrics-001
+# X-Internal-Token: {{internalToken}}
 
 ### GET Sample Request to Generate Traffic (search)
 ### Rode esta chamada algumas vezes e depois execute `GET HTTP Metrics Snapshot`
@@ -37,3 +47,15 @@ X-Request-Id: observability-traffic-001
 GET {{baseUrl}}/v2/snaps/search?attrKey=brinco
 X-Assinatura-Codigo: {{assinaturaCodigo}}
 X-Request-Id: observability-error-001
+
+### GET Actuator Health (externo / Entrega 4 slice 8)
+GET {{baseUrl}}/actuator/health
+X-Request-Id: actuator-health-001
+
+### GET Actuator Metrics Index (externo / Entrega 4 slice 8)
+GET {{baseUrl}}/actuator/metrics
+X-Request-Id: actuator-metrics-001
+
+### GET Actuator Snap Job Metrics (gauge customizado)
+GET {{baseUrl}}/actuator/metrics/snap.jobs.completed
+X-Request-Id: actuator-snap-jobs-completed-001
