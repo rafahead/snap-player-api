@@ -74,6 +74,11 @@ Regra prática:
   - o assistente lê o código, extrai estado real e cria os planos populados
   - surfaça decisões implícitas como ADRs candidatos, lista dívidas técnicas
 
+- `prompts/templates/template-linha-de-corte.md`
+  - para **projetos existentes onde não vale documentar o passado**
+  - cria estrutura mínima e aplica a metodologia só a partir deste ponto
+  - código legado não é auditado; documentado naturalmente quando tocado em novas entregas
+
 
 ### Planos de validação/experimentação
 
