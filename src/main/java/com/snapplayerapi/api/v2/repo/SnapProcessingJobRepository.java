@@ -64,13 +64,14 @@ public interface SnapProcessingJobRepository extends JpaRepository<SnapProcessin
     /**
      * Aggregates terminal jobs count and average completion duration in milliseconds.
      *
-     * <p>Duration is estimated as `finishedAt - startedAt` and only includes rows where both values
-     * are present (completed or failed after actual execution start).</p>
+     * <p>Duration is estimated as `finishedAt - startedAt` and only includes rows where both
+     * timestamps are present (completed or failed after actual execution started).
+     * Uses ANSI SQL interval arithmetic compatible with PostgreSQL and H2 in Postgres mode.</p>
      */
     @Query(value = """
             select
               count(*) as jobs_count,
-              coalesce(avg(datediff('MILLISECOND', started_at, finished_at)), 0)
+              coalesce(avg(extract(epoch from (finished_at - started_at)) * 1000), 0)
             from snap_processing_job
             where status in ('COMPLETED', 'FAILED')
               and started_at is not null

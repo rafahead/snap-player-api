@@ -16,7 +16,7 @@ create table snap_processing_job (
     lock_owner varchar(200),
     started_at timestamp with time zone,
     finished_at timestamp with time zone,
-    last_error clob,
+    last_error text,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
     constraint fk_snap_processing_job_snap foreign key (snap_id) references snap(id),

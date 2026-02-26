@@ -279,21 +279,107 @@ Importante:
 - testes de integração cobrindo async create, retry/backoff, stale recovery e cleanup
 - arquivos `http/*.http` atualizados para fluxo assíncrono e métricas
 
-### Pendente (próximos slices)
+### Pendente — sequência de slices
 
-- decidir rollout do modo assíncrono como padrão (por ambiente)
-- avaliar endpoint de progresso dedicado (se `GET /v2/snaps/{id}` ficar pesado para o player)
-- heartbeat/renovação de lock para jobs longos
-- tuning de concorrência/claim para múltiplos workers
-- telemetria externa (Actuator/Prometheus/OpenTelemetry)
-- operação com PostgreSQL + storage S3 compatível (alinhamento com `master-tecnico.md`)
-- worker fora do processo web (separação operacional)
+#### Slice 4 — Correções bloqueantes pré-Postgres (PREREQUISITE)
 
-### Pendências de plano/documentação associadas
+Deve ser executado antes dos demais slices. Nenhum deploy em Postgres real
+antes de concluir este slice.
+
+Itens técnicos:
+- **B1** — Paginação nativa no banco (ADR 0006)
+  - reescrever queries de lista com `LIMIT`/`OFFSET` no banco
+  - remover `paginateAndSort()` in-memory do `SnapV2Service`
+  - sort dinâmico via whitelist validada (sem SQL injection)
+- **B2** — Corrigir `datediff` H2-specific em `terminalDurationSummary`
+  - substituir por sintaxe Postgres: `EXTRACT(EPOCH FROM (finished_at - started_at)) * 1000`
+- **B3** — Substituir `@Lob` por `@Column(columnDefinition = "text")` (ADR 0007)
+  - todas as entidades com campos JSON: `SnapEntity`, `SnapProcessingJobEntity`, `VideoEntity`
+  - confirmar mapeamento correto com `\d snap` no psql após deploy
+- **B4** — Garantir cleanup de temp FFmpeg no `finally` do gateway
+  - `VideoFrameSnapProcessingGateway` deve chamar `TempStorageService.deleteDir()`
+    tanto em sucesso quanto em falha
+
+Critério de aceite:
+- aplicação sobe e funciona conectada ao PostgreSQL real sem erros
+- listas de snaps com 1.000+ registros respondem sem pressão na heap
+- `/internal/observability/snap-job-metrics` funciona em Postgres (sem erro de `datediff`)
+- diretórios temp são limpos após cada snap processado
+
+---
+
+#### Slice 5 — Hardening de contrato e segurança
+
+Itens:
+- **I5** — Mensagem genérica em 500 + log de stack trace no handler
+  - `GlobalExceptionHandler`: body com `"Internal server error"`, `log.error("...", ex)` no 5xx
+- **I2** — Race condition em `resolveOrCreateVideo` (upsert otimista)
+  - try/catch de `DataIntegrityViolationException` → re-busca o registro existente
+- **I4** — Proteger `/internal/observability/*`
+  - restringir por rede (nginx/proxy) ou verificar token de assinatura nos headers
+- **I7** — `POST /v2/snaps` retornar `201 Created` (async: `202 Accepted`)
+- **I1** — Comparação de `api_token` timing-safe
+  - usar `MessageDigest.isEqual(token1.getBytes(), token2.getBytes())`
+- **I6** — Mapear `MissingServletRequestParameterException` no `GlobalExceptionHandler`
+- **I3** — Documentar comportamento de `resolveUsuario` em requests paralelos
+  - decidir: "última gravação vence" ou `SELECT FOR UPDATE`; adicionar `updated_at` na entidade
+- **M1** — Remover `outputDir` do `SnapResponse` público
+- **M2** — Remover `lockOwner`/`lockedAt` do `SnapJobResponse`
+
+Critério de aceite:
+- nenhuma mensagem interna de servidor exposta em 5xx
+- requests paralelos com mesma URL não resultam em 500
+- POST retorna 201/202 conforme modo
+- tokens de API comparados com segurança
+
+---
+
+#### Slice 6 — Rollout do modo assíncrono como padrão
+
+- Tornar `app.snap.asyncCreateEnabled=true` o padrão em produção
+- Validar `GET /v2/snaps/{id}` como polling de estado sob carga leve
+- Atualizar README com fluxo assíncrono como padrão
+- Atualizar exemplos `http/*.http`
+
+Critério de aceite:
+- `POST` retorna `202` imediatamente em produção
+- `GET` retorna estado correto durante processamento e resultado final
+
+---
+
+#### Slice 7 — Hardening do worker
+
+- Heartbeat/renovação de lock para jobs longos (evitar reprocessamento indevido)
+- `workerInstanceId` dinâmico via `${HOSTNAME:local-worker}` ou UUID por instância
+- Tuning de concorrência e `claimSize` para Linode 2GB
+- Documentar limites operacionais
+
+Critério de aceite:
+- jobs longos não são reprocessados indevidamente
+- `claimed_by` identifica a instância corretamente nos logs
+
+---
+
+#### Slice 8 — Telemetria externa básica
+
+- Actuator com `/actuator/health` e `/actuator/metrics` expostos
+- Métricas de jobs (processados, falhos, tempo médio) via Actuator/Micrometer
+- Logs estruturados com `X-Request-Id` em todas as saídas
+- `requestId` truncado a 64 chars no `RequestCorrelationFilter` (item M3)
+
+Critério de aceite:
+- Health check funcional para docker-compose
+- Métricas básicas acessíveis via Actuator
+
+---
+
+### Pendências de plano/documentação
 
 - refletir a decisão de rollout (quando definida) em `master-tecnico.md` e neste plano
 - registrar ADR se houver mudança estrutural no contrato de progresso/job
 - manter exemplos `.http` e README sincronizados quando o modo async virar padrão
+- marcar itens como FEITO em `prompts/estudos/claude/revisao-tecnica-pre-producao.md`
+  conforme cada slice for concluído
 
 ## Cronograma resumido (API somente)
 

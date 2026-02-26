@@ -61,6 +61,7 @@ public class ProcessingVideoFrameService {
         for (int i = 0; i < requests.size(); i++) {
             ProcessingFilmagemRequest request = requests.get(i);
             Path expectedItemDir = requestDir.resolve("item-%03d".formatted(i));
+            Path itemDir = null;
             VideoProbeService.ProbeResult probe = null;
             try {
                 ResolvedFilmagem resolved = resolveAndValidateItem(request);
@@ -78,7 +79,7 @@ public class ProcessingVideoFrameService {
                         resolved.snapshotDurationSeconds()
                 );
 
-                Path itemDir = tempStorageService.createItemDir(requestDir, i);
+                itemDir = tempStorageService.createItemDir(requestDir, i);
                 FfmpegService.FfmpegRequest snapshotRequest = new FfmpegService.FfmpegRequest(
                         request.videoUrl(),
                         resolvedStartSeconds,
@@ -131,6 +132,10 @@ public class ProcessingVideoFrameService {
                     failedProbe = failedProbe.withReason(rootMessage(e));
                 }
                 results.add(failureResponse(i, request, expectedItemDir, failedProbe, rootMessage(e)));
+            } finally {
+                // Always clean up the item temp directory after processing (success or failure).
+                // The scheduled cleanup handles any dirs left behind by JVM crashes.
+                tempStorageService.deleteRecursively(itemDir != null ? itemDir : expectedItemDir);
             }
         }
 

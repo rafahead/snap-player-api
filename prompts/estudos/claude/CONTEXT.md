@@ -55,7 +55,7 @@ Dois repositórios:
   - Paginação/ordenação padronizadas
   - Observabilidade mínima (X-Request-Id, logs, snapshot interno)
 
-- Entrega 4 — PARCIALMENTE CONCLUÍDA (slices 1-3)
+- Entrega 4 — PARCIALMENTE CONCLUÍDA (slices 1-3 implementados; slices 4-8 planejados)
   - Fila em DB (snap_processing_job) com Flyway
   - Worker local com polling e claim via FOR UPDATE SKIP LOCKED
   - POST /v2/snaps assíncrono opcional por feature flag
@@ -63,6 +63,11 @@ Dois repositórios:
   - Recuperação de jobs RUNNING órfãos
   - Cleanup agendado de jobs terminais
   - /internal/observability/snap-job-metrics
+  - Slice 4 (PREREQUISITE): correções bloqueantes pré-Postgres (B1-B4) — ver ADRs 0006 e 0007
+  - Slice 5: hardening de contrato e segurança (I1-I7)
+  - Slice 6: rollout async como padrão
+  - Slice 7: hardening do worker
+  - Slice 8: telemetria externa básica (Actuator)
 
 ### O que está pendente (prioridade para produção)
 
@@ -138,6 +143,7 @@ após estabilização em produção para Olho do Dono:
 | prompts/masters/master-produto-snap.md | Domínio, regras de produto, multi-assinatura |
 | prompts/entregas/entregas-api-snap-v2.md | Sequenciamento tático de entregas |
 | prompts/masters/master-monetizacao.md | Estratégia comercial e posicionamento |
+| prompts/estudos/claude/revisao-tecnica-pre-producao.md | Revisão técnica do código — bloqueantes e melhorias antes de produção |
 | CONTEXT.md | Este arquivo — ponto de entrada |
 
 ---
