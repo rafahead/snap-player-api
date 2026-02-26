@@ -41,4 +41,29 @@ public class TempStorageService {
                     .toList();
         }
     }
+
+    /**
+     * Deletes a directory and all its contents recursively.
+     *
+     * <p>Used to clean up per-request temp directories after processing completes (success or
+     * failure). Errors are silently swallowed — cleanup failures must not mask the original
+     * processing result. The scheduled cleanup job handles any directories left behind by crashes.</p>
+     */
+    public void deleteRecursively(Path dir) {
+        if (dir == null || !Files.exists(dir)) {
+            return;
+        }
+        try (Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException ignored) {
+                            // Best-effort: scheduler will clean up on next run
+                        }
+                    });
+        } catch (IOException ignored) {
+            // Best-effort cleanup
+        }
+    }
 }

@@ -29,17 +29,20 @@ public class ProcessingVideoFrameService {
     private final TempStorageService tempStorageService;
     private final FfmpegService ffmpegService;
     private final VideoProbeService videoProbeService;
+    private final StorageService storageService;
 
     public ProcessingVideoFrameService(
             ProcessingProperties properties,
             TempStorageService tempStorageService,
             FfmpegService ffmpegService,
-            VideoProbeService videoProbeService
+            VideoProbeService videoProbeService,
+            StorageService storageService
     ) {
         this.properties = properties;
         this.tempStorageService = tempStorageService;
         this.ffmpegService = ffmpegService;
         this.videoProbeService = videoProbeService;
+        this.storageService = storageService;
     }
 
     public ProcessingBatchResponse process(List<ProcessingFilmagemRequest> requests) {
@@ -61,6 +64,7 @@ public class ProcessingVideoFrameService {
         for (int i = 0; i < requests.size(); i++) {
             ProcessingFilmagemRequest request = requests.get(i);
             Path expectedItemDir = requestDir.resolve("item-%03d".formatted(i));
+            Path itemDir = null;
             VideoProbeService.ProbeResult probe = null;
             try {
                 ResolvedFilmagem resolved = resolveAndValidateItem(request);
@@ -78,7 +82,7 @@ public class ProcessingVideoFrameService {
                         resolved.snapshotDurationSeconds()
                 );
 
-                Path itemDir = tempStorageService.createItemDir(requestDir, i);
+                itemDir = tempStorageService.createItemDir(requestDir, i);
                 FfmpegService.FfmpegRequest snapshotRequest = new FfmpegService.FfmpegRequest(
                         request.videoUrl(),
                         resolvedStartSeconds,
@@ -105,8 +109,28 @@ public class ProcessingVideoFrameService {
                 ffmpegService.extractFrames(framesRequest);
 
                 List<Path> files = tempStorageService.listFrameFiles(itemDir, resolved.format());
-                List<ProcessingFrameResponse> frames = buildFrameResponses(files, resolvedStartSeconds, resolved.fps());
-                ProcessingSnapshotVideoResponse snapshotVideo = buildSnapshotResponse(itemDir, resolved.snapshotDurationSeconds());
+                // Persist artifacts before the `finally` cleanup removes the temp item directory.
+                Path snapshotFile = requireSnapshotFile(itemDir);
+                StorageService.StoredArtifacts storedArtifacts = storageService.storeProcessingArtifacts(
+                        requestId,
+                        i,
+                        // The v2 flows pass `snapId` here, producing stable storage keys across retries.
+                        request.clientRequestId(),
+                        itemDir,
+                        snapshotFile,
+                        files
+                );
+                List<ProcessingFrameResponse> frames = buildFrameResponses(
+                        files,
+                        storedArtifacts.framePaths(),
+                        resolvedStartSeconds,
+                        resolved.fps()
+                );
+                ProcessingSnapshotVideoResponse snapshotVideo = buildSnapshotResponse(
+                        snapshotFile.getFileName().toString(),
+                        storedArtifacts.snapshotPath(),
+                        resolved.snapshotDurationSeconds()
+                );
 
                 results.add(new ProcessingFilmagemResponse(
                         i,
@@ -118,7 +142,7 @@ public class ProcessingVideoFrameService {
                         request.startFrame(),
                         resolvedStartSeconds,
                         toProbeResponse(probe),
-                        itemDir.toString(),
+                        storedArtifacts.outputDir(),
                         snapshotVideo,
                         frames.size(),
                         frames,
@@ -131,6 +155,10 @@ public class ProcessingVideoFrameService {
                     failedProbe = failedProbe.withReason(rootMessage(e));
                 }
                 results.add(failureResponse(i, request, expectedItemDir, failedProbe, rootMessage(e)));
+            } finally {
+                // Always clean up the item temp directory after processing (success or failure).
+                // The scheduled cleanup handles any dirs left behind by JVM crashes.
+                tempStorageService.deleteRecursively(itemDir != null ? itemDir : expectedItemDir);
             }
         }
 
@@ -321,7 +349,16 @@ public class ProcessingVideoFrameService {
         }
     }
 
-    private static List<ProcessingFrameResponse> buildFrameResponses(List<Path> files, double startSeconds, int fps) {
+    /**
+     * Builds API frame payloads using the persisted storage paths/URLs while preserving frame order
+     * and the filenames generated by FFmpeg.
+     */
+    private static List<ProcessingFrameResponse> buildFrameResponses(
+            List<Path> files,
+            List<String> storedPaths,
+            double startSeconds,
+            int fps
+    ) {
         List<ProcessingFrameResponse> frames = new ArrayList<>(files.size());
         for (int i = 0; i < files.size(); i++) {
             Path file = files.get(i);
@@ -331,18 +368,32 @@ public class ProcessingVideoFrameService {
                     frameIndex,
                     timestamp,
                     file.getFileName().toString(),
-                    file.toString()
+                    storedPaths.get(i)
             ));
         }
         return frames;
     }
 
-    private static ProcessingSnapshotVideoResponse buildSnapshotResponse(Path itemDir, double durationSeconds) throws IOException {
+    /**
+     * Validates that FFmpeg generated the snapshot clip before storage persistence starts.
+     */
+    private static Path requireSnapshotFile(Path itemDir) {
         Path snapshot = itemDir.resolve("snapshot.mp4");
         if (!Files.exists(snapshot)) {
             throw new IllegalStateException("snapshot.mp4 was not generated");
         }
-        return new ProcessingSnapshotVideoResponse(snapshot.getFileName().toString(), snapshot.toString(), durationSeconds);
+        return snapshot;
+    }
+
+    /**
+     * Creates the snapshot payload using the persisted storage path/URL rather than the temp file path.
+     */
+    private static ProcessingSnapshotVideoResponse buildSnapshotResponse(
+            String fileName,
+            String storedPath,
+            double durationSeconds
+    ) {
+        return new ProcessingSnapshotVideoResponse(fileName, storedPath, durationSeconds);
     }
 
     private static ProcessingVideoProbeResponse toProbeResponse(VideoProbeService.ProbeResult probe) {

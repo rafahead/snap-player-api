@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -55,8 +54,7 @@ public class SnapProcessingJobEntity {
     @Column(name = "finished_at")
     private OffsetDateTime finishedAt;
 
-    @Lob
-    @Column(name = "last_error")
+    @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 
     @Column(name = "created_at", nullable = false)

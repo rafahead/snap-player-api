@@ -1,0 +1,33 @@
+server:
+  port: ${APP_PORT:8080}
+  forward-headers-strategy: framework
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+app:
+  storage:
+    local:
+      enabled: false
+    s3:
+      enabled: true
+      endpoint: ${STORAGE_ENDPOINT}
+      region: ${STORAGE_REGION}
+      bucket: ${STORAGE_BUCKET}
+      accessKey: ${STORAGE_ACCESS_KEY}
+      secretKey: ${STORAGE_SECRET_KEY}
+      publicBaseUrl: ${STORAGE_PUBLIC_BASE_URL}
+      prefix: ${STORAGE_PREFIX:}
+  internal:
+    accessToken: ${APP_INTERNAL_ACCESS_TOKEN:}
+  processing:
+    tmpBase: ${APP_TMP_BASE:/data/tmp/video-frames-processing}
+  snap:
+    publicBaseUrl: ${SNAP_PUBLIC_BASE_URL:}
+    asyncCreateEnabled: true
+    workerEnabled: true
+    workerInstanceId: ${APP_WORKER_INSTANCE_ID:${HOSTNAME:local-worker}}

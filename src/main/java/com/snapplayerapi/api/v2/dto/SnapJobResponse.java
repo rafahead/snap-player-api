@@ -15,8 +15,6 @@ public record SnapJobResponse(
         Integer attempts,
         Integer maxAttempts,
         OffsetDateTime nextRunAt,
-        OffsetDateTime lockedAt,
-        String lockOwner,
         OffsetDateTime startedAt,
         OffsetDateTime finishedAt,
         String lastError

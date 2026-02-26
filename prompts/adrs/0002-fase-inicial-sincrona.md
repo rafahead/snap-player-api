@@ -2,7 +2,7 @@
 
 ## Status
 
-Aceito
+Substituído por [ADR 0012](0012-async-como-padrao.md)
 
 ## Contexto
 
@@ -43,6 +43,6 @@ O contrato do `snap` deve ser desenhado para migrar ao assíncrono depois sem qu
 
 ## Relação com planos
 
-- Coerente com baseline de `prompts/entregas/entregas-api-snap-v2.md`
+- Coerente com baseline de `prompts/masters/master-roadmap.md`
 - Aproveita pipeline de `prompts/masters/master-tecnico.md`
 - Mantém domínio de `prompts/masters/master-produto-snap.md`

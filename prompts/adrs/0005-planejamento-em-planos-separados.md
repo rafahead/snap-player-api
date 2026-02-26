@@ -19,7 +19,8 @@ Manter planejamento em arquivos separados com papéis distintos:
 
 - `prompts/masters/master-tecnico.md` = Master Técnico
 - `prompts/masters/master-produto-snap.md` = Master Produto (Snap-first)
-- `prompts/entregas/entregas-api-snap-v2.md` = Plano de Entregas
+- `prompts/masters/master-roadmap.md` = Master Roadmap (plano de entregas)
+- `prompts/masters/master-adrs.md` = Master ADRs (governança de decisões)
 - `prompts/adrs/` = decisões estruturais (ADRs)
 
 ## Consequências

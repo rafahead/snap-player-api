@@ -58,7 +58,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.snap.workerRetryMaxDelaySeconds=10",
         "app.snap.workerLockTimeoutSeconds=1",
         "app.snap.jobRetentionHours=1",
-        "app.snap.jobCleanupBatchSize=10"
+        "app.snap.jobCleanupBatchSize=10",
+        "spring.jpa.hibernate.ddl-auto=none"
 })
 class SnapV2AsyncCreateIntegrationTest {
 
@@ -83,7 +84,7 @@ class SnapV2AsyncCreateIntegrationTest {
         String createResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-async.mp4", "operador-async", "async-1", "ASYNC-001", 455.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.frameCount").value(0))
                 .andExpect(jsonPath("$.frames.length()").value(0))
@@ -125,7 +126,7 @@ class SnapV2AsyncCreateIntegrationTest {
         String createResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-retry.mp4", "operador-retry", "fail-once-1", "RETRY-001", 460.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andReturn()
                 .getResponse()
@@ -174,7 +175,7 @@ class SnapV2AsyncCreateIntegrationTest {
         String createResponse = mockMvc.perform(post("/v2/snaps")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSnapBody("https://example.com/video-stale.mp4", "operador-stale", "stale-1", "STALE-001", 470.0)))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

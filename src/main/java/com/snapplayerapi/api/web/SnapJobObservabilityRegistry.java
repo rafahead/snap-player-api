@@ -1,5 +1,7 @@
 package com.snapplayerapi.api.web;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -28,6 +30,36 @@ public class SnapJobObservabilityRegistry {
     private final LongAdder totalDurationMs = new LongAdder();
     private final AtomicLong maxDurationMs = new AtomicLong();
     private final ConcurrentMap<String, LongAdder> terminalStatusCounts = new ConcurrentHashMap<>();
+
+    public SnapJobObservabilityRegistry(MeterRegistry meterRegistry) {
+        Gauge.builder("snap.jobs.claimed", this, SnapJobObservabilityRegistry::claimedCountValue)
+                .description("Total async snap-processing jobs claimed by workers since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.retry.scheduled", this, SnapJobObservabilityRegistry::retryScheduledCountValue)
+                .description("Total async job retry schedules since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.stale.recovered", this, SnapJobObservabilityRegistry::staleRecoveredCountValue)
+                .description("Total stale RUNNING jobs recovered since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.cleanup.deleted", this, SnapJobObservabilityRegistry::cleanupDeletedCountValue)
+                .description("Total terminal job rows deleted by cleanup since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.processed", this, SnapJobObservabilityRegistry::processedCountValue)
+                .description("Total terminal async jobs observed since startup (COMPLETED + FAILED)")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.completed", this, SnapJobObservabilityRegistry::completedCountValue)
+                .description("Total completed async jobs observed since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.failed", this, SnapJobObservabilityRegistry::failedCountValue)
+                .description("Total failed async jobs observed since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.terminal.avg.duration.ms", this, SnapJobObservabilityRegistry::avgTerminalDurationMsValue)
+                .description("Average terminal async job duration in milliseconds since startup")
+                .register(meterRegistry);
+        Gauge.builder("snap.jobs.terminal.max.duration.ms", this, SnapJobObservabilityRegistry::maxTerminalDurationMsValue)
+                .description("Maximum terminal async job duration in milliseconds since startup")
+                .register(meterRegistry);
+    }
 
     /**
      * Records that a worker successfully claimed a job row.
@@ -105,5 +137,48 @@ public class SnapJobObservabilityRegistry {
                 terminalByStatus
         );
     }
-}
 
+    long claimedCountValue() {
+        return claimedCount.sum();
+    }
+
+    long retryScheduledCountValue() {
+        return retryScheduledCount.sum();
+    }
+
+    long staleRecoveredCountValue() {
+        return staleRecoveredCount.sum();
+    }
+
+    long cleanupDeletedCountValue() {
+        return cleanupDeletedCount.sum();
+    }
+
+    long completedCountValue() {
+        return completedCount.sum();
+    }
+
+    long failedCountValue() {
+        return failedCount.sum();
+    }
+
+    long processedCountValue() {
+        return completedCountValue() + failedCountValue();
+    }
+
+    double avgTerminalDurationMsValue() {
+        long terminalTotal = terminalTotalCountValue();
+        if (terminalTotal == 0L) {
+            return 0.0;
+        }
+        return (double) totalDurationMs.sum() / (double) terminalTotal;
+    }
+
+    long maxTerminalDurationMsValue() {
+        return maxDurationMs.get();
+    }
+
+    private long terminalTotalCountValue() {
+        return terminalStatusCounts.values().stream().mapToLong(counter -> counter.sum()).sum();
+    }
+}

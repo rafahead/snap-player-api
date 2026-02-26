@@ -38,7 +38,6 @@ public record SnapResponse(
         ProcessingSnapshotVideoResponse snapshotVideo,
         Integer frameCount,
         List<ProcessingFrameResponse> frames,
-        String outputDir,
         String error,
         SnapJobResponse job,
         OffsetDateTime createdAt,

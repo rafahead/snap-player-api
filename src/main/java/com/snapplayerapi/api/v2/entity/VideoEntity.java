@@ -3,7 +3,6 @@ package com.snapplayerapi.api.v2.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -24,19 +23,16 @@ public class VideoEntity {
     @Column(name = "assinatura_id", nullable = false)
     private Long assinaturaId;
 
-    @Lob
-    @Column(name = "original_url", nullable = false)
+    @Column(name = "original_url", nullable = false, columnDefinition = "text")
     private String originalUrl;
 
-    @Lob
-    @Column(name = "canonical_url")
+    @Column(name = "canonical_url", columnDefinition = "text")
     private String canonicalUrl;
 
     @Column(name = "url_hash", nullable = false, length = 64)
     private String urlHash;
 
-    @Lob
-    @Column(name = "video_probe_json")
+    @Column(name = "video_probe_json", columnDefinition = "text")
     private String videoProbeJson;
 
     @Column(name = "created_by_usuario_id")

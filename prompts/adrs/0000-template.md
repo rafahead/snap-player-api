@@ -26,4 +26,4 @@ Descreva a decisão tomada de forma objetiva.
 
 - `prompts/masters/master-tecnico.md`
 - `prompts/masters/master-produto-snap.md`
-- `prompts/entregas/entregas-api-snap-v2.md`
+- `prompts/masters/master-roadmap.md`

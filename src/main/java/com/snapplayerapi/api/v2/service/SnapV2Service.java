@@ -48,9 +48,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -58,7 +58,12 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.stereotype.Service;
+import com.snapplayerapi.api.v2.repo.OffsetBasedPageRequest;
 
 /**
  * Application service for Entregas 1-2 (`v2`) Snap-first endpoints.
@@ -163,7 +168,9 @@ public class SnapV2Service {
                 request.dataFilmagem(),
                 effectiveSubject,
                 request.overlay(),
-                null
+                // Entrega 5: reuse `snapId` as the artifact id hint so storage keys stay stable and
+                // retries/worker reprocessing overwrite the same logical objects.
+                snapId.toString()
         );
 
         // Entrega 1 remains synchronous and reuses the MVP implementation via gateway abstraction.
@@ -368,6 +375,9 @@ public class SnapV2Service {
 
     /**
      * Lists snaps for a video, optionally filtered by nickname, always scoped to the active assinatura.
+     *
+     * <p>Uses DB-level LIMIT/OFFSET via {@link OffsetBasedPageRequest} (ADR 0006). Sort is applied
+     * at the database level using Spring Data {@link Sort}.</p>
      */
     public VideoSnapsResponse listSnapsByVideo(
             String assinaturaCodigo,
@@ -381,32 +391,27 @@ public class SnapV2Service {
     ) {
         AssinaturaEntity assinatura = loadAssinatura(assinaturaCodigo, assinaturaToken);
         ListQuerySpec querySpec = resolveListQuerySpec(
-                offset,
-                limit,
-                sortBy,
-                sortDir,
-                "resolvedStartSeconds",
-                "asc",
+                offset, limit, sortBy, sortDir,
+                "resolvedStartSeconds", "asc",
                 List.of("resolvedStartSeconds", "createdAt")
         );
-        List<SnapEntity> snaps;
+        Sort sort = toSnapSort(querySpec);
+        OffsetBasedPageRequest pageable = new OffsetBasedPageRequest(querySpec.offset(), querySpec.limit(), sort);
+        Slice<SnapEntity> slice;
         if (nickname == null || nickname.isBlank()) {
-            snaps = snapRepository.findByVideoIdAndAssinaturaIdOrderByResolvedStartSecondsAscCreatedAtAsc(videoId, assinatura.getId());
+            slice = snapRepository.findByVideoIdAndAssinaturaId(videoId, assinatura.getId(), pageable);
         } else {
-            snaps = snapRepository.findByVideoIdAndAssinaturaIdAndNicknameSnapshotIgnoreCaseOrderByResolvedStartSecondsAscCreatedAtAsc(
-                    videoId,
-                    assinatura.getId(),
-                    nickname.strip()
-            );
+            slice = snapRepository.findByVideoIdAndAssinaturaIdAndNicknameSnapshotIgnoreCase(
+                    videoId, assinatura.getId(), nickname.strip(), pageable);
         }
-        PagedItems<SnapEntity> paged = paginateAndSort(snaps, querySpec, comparatorForVideoSnaps(querySpec.sortBy()));
-        List<SnapResponse> items = paged.items().stream().map(this::toResponse).toList();
-        return new VideoSnapsResponse(videoId, paged.total(), paged.page(), items);
+        List<SnapResponse> items = slice.getContent().stream().map(this::toResponse).toList();
+        return new VideoSnapsResponse(videoId, items.size(), toPageMeta(querySpec, slice), items);
     }
 
     /**
-     * Basic Entrega 1 search:
-     * by `subjectId` and/or exact string attribute (`attrKey` + `attrValue`).
+     * Basic Entrega 1 search: by {@code subjectId} and/or exact string attribute.
+     *
+     * <p>Paginated at the database level (ADR 0006).</p>
      */
     public SnapSearchResponse search(
             String assinaturaCodigo,
@@ -422,15 +427,10 @@ public class SnapV2Service {
         AssinaturaEntity assinatura = loadAssinatura(assinaturaCodigo, assinaturaToken);
         String normalizedSubjectId = hasText(subjectId) ? subjectId.strip() : null;
         ListQuerySpec querySpec = resolveListQuerySpec(
-                offset,
-                limit,
-                sortBy,
-                sortDir,
-                "createdAt",
-                "desc",
+                offset, limit, sortBy, sortDir,
+                "createdAt", "desc",
                 List.of("createdAt", "resolvedStartSeconds")
         );
-        List<SnapEntity> snaps;
 
         boolean hasAttrKey = hasText(attrKey);
         boolean hasAttrValue = hasText(attrValue);
@@ -441,22 +441,25 @@ public class SnapV2Service {
             throw new IllegalArgumentException("Provide subjectId or attrKey+attrValue");
         }
 
+        Sort sort = toSnapSort(querySpec);
+        OffsetBasedPageRequest pageable = new OffsetBasedPageRequest(querySpec.offset(), querySpec.limit(), sort);
+        Slice<SnapEntity> slice;
         if (hasAttrKey) {
-            snaps = snapRepository.searchByStringAttr(assinatura.getId(), normalizedSubjectId, attrKey.strip(), attrValue.strip());
+            slice = snapRepository.searchByStringAttr(
+                    assinatura.getId(), normalizedSubjectId, attrKey.strip(), attrValue.strip(), pageable);
         } else {
-            snaps = snapRepository.findByAssinaturaIdAndSubjectIdOrderByCreatedAtDesc(assinatura.getId(), normalizedSubjectId);
+            slice = snapRepository.findByAssinaturaIdAndSubjectId(assinatura.getId(), normalizedSubjectId, pageable);
         }
-
-        PagedItems<SnapEntity> paged = paginateAndSort(snaps, querySpec, comparatorForSnapLists(querySpec.sortBy()));
-        List<SnapResponse> items = paged.items().stream().map(this::toResponse).toList();
-        return new SnapSearchResponse(paged.total(), paged.page(), items);
+        List<SnapResponse> items = slice.getContent().stream().map(this::toResponse).toList();
+        return new SnapSearchResponse(items.size(), toPageMeta(querySpec, slice), items);
     }
 
     /**
      * Lists snaps created by the user identified by nickname in the active assinatura.
      *
      * <p>Entrega 2 uses nickname as a temporary identity input before auth/token support. Matching
-     * is case-insensitive to reduce accidental fragmentation in local/manual usage.</p>
+     * is case-insensitive to reduce accidental fragmentation in local/manual usage.
+     * Paginated at the database level (ADR 0006).</p>
      */
     public MineSnapsResponse listMineSnaps(
             String assinaturaCodigo,
@@ -473,29 +476,29 @@ public class SnapV2Service {
         AssinaturaEntity assinatura = loadAssinatura(assinaturaCodigo, assinaturaToken);
         String normalizedNickname = nickname.strip();
         ListQuerySpec querySpec = resolveListQuerySpec(
-                offset,
-                limit,
-                sortBy,
-                sortDir,
-                "createdAt",
-                "desc",
+                offset, limit, sortBy, sortDir,
+                "createdAt", "desc",
                 List.of("createdAt", "resolvedStartSeconds")
         );
-        List<SnapEntity> snaps = snapRepository.findByAssinaturaIdAndNicknameSnapshotIgnoreCaseOrderByCreatedAtDesc(
-                assinatura.getId(),
-                normalizedNickname
-        );
-        PagedItems<SnapEntity> paged = paginateAndSort(snaps, querySpec, comparatorForSnapLists(querySpec.sortBy()));
-        List<SnapResponse> items = paged.items().stream().map(this::toResponse).toList();
-        return new MineSnapsResponse(normalizedNickname, paged.total(), paged.page(), items);
+        Sort sort = toSnapSort(querySpec);
+        OffsetBasedPageRequest pageable = new OffsetBasedPageRequest(querySpec.offset(), querySpec.limit(), sort);
+        Slice<SnapEntity> slice = snapRepository.findByAssinaturaIdAndNicknameSnapshotIgnoreCase(
+                assinatura.getId(), normalizedNickname, pageable);
+        List<SnapResponse> items = slice.getContent().stream().map(this::toResponse).toList();
+        return new MineSnapsResponse(normalizedNickname, items.size(), toPageMeta(querySpec, slice), items);
     }
 
     /**
-     * Lists videos with snap activity created by the given nickname.
+     * Lists videos with snap activity created by the given nickname, aggregated and paginated at
+     * the database level (ADR 0006).
      *
-     * <p>The implementation aggregates over the user's snaps in memory because Entrega 2 volumes are
-     * still small and this keeps the repository/query layer simple. Items are ordered by most recent
-     * snap activity (descending) because the source list is already returned in that order.</p>
+     * <p>Uses a JPQL GROUP BY query to compute per-video aggregates (snapCount, latestSnapCreatedAt)
+     * directly in the database instead of loading all snaps into the JVM. A second bounded query
+     * fetches the most-recent {@code snapId} per video for the current page.</p>
+     *
+     * <p>The {@code total} envelope field reflects the number of items in the current page since
+     * a COUNT(*) over the aggregate is intentionally skipped (ADR 0006). Clients should use
+     * {@code page.hasMore} for pagination navigation.</p>
      */
     public MineVideosResponse listMineVideos(
             String assinaturaCodigo,
@@ -512,41 +515,44 @@ public class SnapV2Service {
         AssinaturaEntity assinatura = loadAssinatura(assinaturaCodigo, assinaturaToken);
         String normalizedNickname = nickname.strip();
         ListQuerySpec querySpec = resolveListQuerySpec(
-                offset,
-                limit,
-                sortBy,
-                sortDir,
-                "latestSnapCreatedAt",
-                "desc",
+                offset, limit, sortBy, sortDir,
+                "latestSnapCreatedAt", "desc",
                 List.of("latestSnapCreatedAt", "snapCount", "videoUrl")
         );
-        List<SnapEntity> snaps = snapRepository.findByAssinaturaIdAndNicknameSnapshotIgnoreCaseOrderByCreatedAtDesc(
-                assinatura.getId(),
-                normalizedNickname
-        );
 
-        Map<UUID, MineVideoAccumulator> byVideo = new LinkedHashMap<>();
-        for (SnapEntity snap : snaps) {
-            // First occurrence is the most recent one because repository returns `createdAt desc`.
-            byVideo.computeIfAbsent(
-                    snap.getVideoId(),
-                    ignored -> new MineVideoAccumulator(snap.getVideoId(), snap.getVideoUrl(), snap.getId(), snap.getCreatedAt())
-            ).increment();
+        Sort sort = toMineVideoSort(querySpec);
+        OffsetBasedPageRequest pageable = new OffsetBasedPageRequest(querySpec.offset(), querySpec.limit(), sort);
+        Slice<Object[]> slice = snapRepository.findVideoAggregatesForNickname(
+                assinatura.getId(), normalizedNickname, pageable);
+
+        List<Object[]> aggregates = slice.getContent();
+        List<UUID> videoIds = aggregates.stream().map(row -> (UUID) row[0]).toList();
+
+        // Bounded secondary query: one lookup for all video IDs on the current page (max 100).
+        Map<UUID, UUID> latestSnapIdByVideo = new HashMap<>();
+        if (!videoIds.isEmpty()) {
+            snapRepository.findLatestSnapIdPerVideo(assinatura.getId(), normalizedNickname, videoIds)
+                    .forEach(row -> latestSnapIdByVideo.put((UUID) row[0], (UUID) row[1]));
         }
 
-        List<MineVideoItemResponse> items = byVideo.values().stream()
-                .map(MineVideoAccumulator::toResponse)
-                .toList();
-        PagedItems<MineVideoItemResponse> paged = paginateAndSort(items, querySpec, comparatorForMineVideos(querySpec.sortBy()));
-        return new MineVideosResponse(normalizedNickname, paged.total(), paged.page(), paged.items());
+        List<MineVideoItemResponse> items = aggregates.stream().map(row -> {
+            UUID videoId = (UUID) row[0];
+            String videoUrl = (String) row[1];
+            int snapCount = ((Number) row[2]).intValue();
+            OffsetDateTime latestSnapCreatedAt = toOffsetDateTime(row[3]);
+            UUID latestSnapId = latestSnapIdByVideo.get(videoId);
+            return new MineVideoItemResponse(videoId, videoUrl, snapCount, latestSnapId, latestSnapCreatedAt);
+        }).toList();
+
+        return new MineVideosResponse(normalizedNickname, items.size(), toPageMeta(querySpec, slice), items);
     }
 
     /**
      * Normalizes and validates the shared list/search query parameters used by multiple endpoints.
      *
      * <p>Supported shape across all list endpoints:
-     * `offset` (0-based), `limit` (1..100), `sortBy`, `sortDir` (`asc|desc`). Each endpoint still
-     * constrains allowed `sortBy` values to fields that make sense for that resource.</p>
+     * {@code offset} (0-based), {@code limit} (1..100), {@code sortBy}, {@code sortDir} ({@code asc|desc}).
+     * Each endpoint still constrains allowed {@code sortBy} values to fields meaningful for that resource.</p>
      */
     private static ListQuerySpec resolveListQuerySpec(
             int offset,
@@ -581,85 +587,67 @@ public class SnapV2Service {
     }
 
     /**
-     * Applies endpoint-specific ordering and shared offset/limit pagination in-memory.
+     * Builds a {@link Sort} for snap-entity list queries from the validated query spec.
      *
-     * <p>Entrega 3 prioritizes contract consistency first. Current data volumes are still small and
-     * the repository methods already return bounded test/local datasets, so this keeps the code
-     * simple while we stabilize the API shape before deeper query optimization.</p>
+     * <p>Sort fields are mapped to entity field names and a secondary sort on {@code id} is always
+     * appended to guarantee a stable order for pagination (ties on timestamps are common).</p>
      */
-    private static <T> PagedItems<T> paginateAndSort(List<T> source, ListQuerySpec querySpec, Comparator<T> comparator) {
-        List<T> sorted = new ArrayList<>(source);
-        if ("desc".equals(querySpec.sortDir())) {
-            sorted.sort(comparator.reversed());
-        } else {
-            sorted.sort(comparator);
-        }
+    private static Sort toSnapSort(ListQuerySpec querySpec) {
+        Sort.Direction dir = "desc".equals(querySpec.sortDir()) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return switch (querySpec.sortBy()) {
+            case "resolvedStartSeconds" ->
+                Sort.by(dir, "resolvedStartSeconds").and(Sort.by(Sort.Direction.ASC, "createdAt")).and(Sort.by(Sort.Direction.ASC, "id"));
+            case "createdAt" ->
+                Sort.by(dir, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
+            default -> throw new IllegalArgumentException("Unsupported sortBy for snaps: " + querySpec.sortBy());
+        };
+    }
 
-        int total = sorted.size();
-        int fromIndex = Math.min(querySpec.offset(), total);
-        int toIndex = Math.min(fromIndex + querySpec.limit(), total);
-        List<T> pageItems = List.copyOf(sorted.subList(fromIndex, toIndex));
-        PageMetaResponse page = new PageMetaResponse(
+    /**
+     * Builds a {@link Sort} for the video aggregate GROUP BY query using {@link JpaSort#unsafe}
+     * to allow sorting on aggregate expressions ({@code max(s.createdAt)}, {@code count(s)}).
+     *
+     * <p>{@link JpaSort#unsafe} bypasses Spring Data's property validation — the expressions are
+     * safe here because they come from a validated whitelist, never from raw user input.</p>
+     */
+    private static Sort toMineVideoSort(ListQuerySpec querySpec) {
+        Sort.Direction dir = "desc".equals(querySpec.sortDir()) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return switch (querySpec.sortBy()) {
+            case "latestSnapCreatedAt" -> JpaSort.unsafe(dir, "max(s.createdAt)");
+            case "snapCount" -> JpaSort.unsafe(dir, "count(s)");
+            case "videoUrl" -> JpaSort.unsafe(dir, "max(s.videoUrl)");
+            default -> throw new IllegalArgumentException("Unsupported sortBy for mine videos: " + querySpec.sortBy());
+        };
+    }
+
+    /**
+     * Builds {@link PageMetaResponse} from a {@link Slice} result.
+     *
+     * <p>Spring Data fetches {@code limit + 1} rows internally; {@code slice.hasNext()} is
+     * {@code true} when that extra row exists. No COUNT(*) query is issued (ADR 0006).</p>
+     */
+    private static PageMetaResponse toPageMeta(ListQuerySpec querySpec, Slice<?> slice) {
+        return new PageMetaResponse(
                 querySpec.offset(),
                 querySpec.limit(),
-                pageItems.size(),
-                toIndex < total,
+                slice.getContent().size(),
+                slice.hasNext(),
                 querySpec.sortBy(),
                 querySpec.sortDir()
         );
-        return new PagedItems<>(total, page, pageItems);
     }
 
     /**
-     * Comparator set for `GET /v2/videos/{videoId}/snaps`.
+     * Safe conversion of JPQL aggregate result values to {@link OffsetDateTime}.
+     *
+     * <p>JPQL {@code max(s.createdAt)} may return either {@link OffsetDateTime} (Hibernate/Postgres)
+     * or {@link java.sql.Timestamp} (H2 in Postgres mode). Both are handled here.</p>
      */
-    private static Comparator<SnapEntity> comparatorForVideoSnaps(String sortBy) {
-        return switch (sortBy) {
-            case "resolvedStartSeconds" -> Comparator
-                    .comparing(SnapEntity::getResolvedStartSeconds, Comparator.nullsLast(Double::compareTo))
-                    .thenComparing(SnapEntity::getCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(SnapEntity::getId);
-            case "createdAt" -> Comparator
-                    .comparing(SnapEntity::getCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(SnapEntity::getResolvedStartSeconds, Comparator.nullsLast(Double::compareTo))
-                    .thenComparing(SnapEntity::getId);
-            default -> throw new IllegalArgumentException("Unsupported sortBy for video snaps: " + sortBy);
-        };
-    }
-
-    /**
-     * Comparator set shared by snap-centric list endpoints (`search`, `mine`).
-     */
-    private static Comparator<SnapEntity> comparatorForSnapLists(String sortBy) {
-        return switch (sortBy) {
-            case "createdAt" -> Comparator
-                    .comparing(SnapEntity::getCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(SnapEntity::getId);
-            case "resolvedStartSeconds" -> Comparator
-                    .comparing(SnapEntity::getResolvedStartSeconds, Comparator.nullsLast(Double::compareTo))
-                    .thenComparing(SnapEntity::getCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(SnapEntity::getId);
-            default -> throw new IllegalArgumentException("Unsupported sortBy for snap lists: " + sortBy);
-        };
-    }
-
-    /**
-     * Comparator set for aggregated `GET /v2/videos/mine`.
-     */
-    private static Comparator<MineVideoItemResponse> comparatorForMineVideos(String sortBy) {
-        return switch (sortBy) {
-            case "latestSnapCreatedAt" -> Comparator
-                    .comparing(MineVideoItemResponse::latestSnapCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(MineVideoItemResponse::videoId);
-            case "snapCount" -> Comparator
-                    .comparingInt(MineVideoItemResponse::snapCount)
-                    .thenComparing(MineVideoItemResponse::latestSnapCreatedAt, Comparator.nullsLast(OffsetDateTime::compareTo))
-                    .thenComparing(MineVideoItemResponse::videoId);
-            case "videoUrl" -> Comparator
-                    .comparing(MineVideoItemResponse::videoUrl, Comparator.nullsLast(String::compareToIgnoreCase))
-                    .thenComparing(MineVideoItemResponse::videoId);
-            default -> throw new IllegalArgumentException("Unsupported sortBy for mine videos: " + sortBy);
-        };
+    private static OffsetDateTime toOffsetDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof OffsetDateTime odt) return odt;
+        if (value instanceof java.sql.Timestamp ts) return ts.toInstant().atOffset(ZoneOffset.UTC);
+        throw new IllegalStateException("Unexpected type for OffsetDateTime aggregate: " + value.getClass().getName());
     }
 
     /**
@@ -749,7 +737,9 @@ public class SnapV2Service {
         }
 
         String providedToken = assinaturaToken.strip();
-        if (!Objects.equals(expectedToken, providedToken)) {
+        if (!MessageDigest.isEqual(
+                expectedToken.getBytes(StandardCharsets.UTF_8),
+                providedToken.getBytes(StandardCharsets.UTF_8))) {
             throw new UnauthorizedException("Invalid assinatura API token");
         }
     }
@@ -757,6 +747,11 @@ public class SnapV2Service {
     /**
      * Resolves an existing user by email or creates one, updating nickname snapshots when the
      * user keeps the same email but changes the display nickname.
+     *
+     * <p>Concurrent creation with the same email: the unique index {@code uk_usuario_email} prevents
+     * duplicates. If a race causes a {@link DataIntegrityViolationException} during insert, the
+     * method re-fetches the winner row (optimistic upsert). Nickname updates follow "last write wins"
+     * — acceptable because nickname is a display name with no security implication.</p>
      */
     private UsuarioEntity resolveUsuario(String nickname, String email, OffsetDateTime now) {
         String normalizedEmail = email.strip().toLowerCase(Locale.ROOT);
@@ -775,7 +770,13 @@ public class SnapV2Service {
         usuario.setEmail(normalizedEmail);
         usuario.setStatus("ACTIVE");
         usuario.setCreatedAt(now);
-        return usuarioRepository.save(usuario);
+        try {
+            return usuarioRepository.save(usuario);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent request with the same email won the race — re-fetch the winner.
+            return usuarioRepository.findByEmail(normalizedEmail)
+                    .orElseThrow(() -> new IllegalStateException("Usuario not found after constraint conflict", e));
+        }
     }
 
     /**
@@ -812,18 +813,25 @@ public class SnapV2Service {
         String videoUrl = requireVideoUrl(videoUrlRaw);
         String canonicalUrl = canonicalizeUrl(videoUrl);
         String hash = sha256(canonicalUrl);
-        return videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash)
-                .orElseGet(() -> {
-                    VideoEntity video = new VideoEntity();
-                    video.setId(UUID.randomUUID());
-                    video.setAssinaturaId(assinaturaId);
-                    video.setOriginalUrl(videoUrl);
-                    video.setCanonicalUrl(canonicalUrl);
-                    video.setUrlHash(hash);
-                    video.setCreatedByUsuarioId(usuarioId);
-                    video.setCreatedAt(now);
-                    return videoRepository.save(video);
-                });
+        Optional<VideoEntity> existing = videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        VideoEntity video = new VideoEntity();
+        video.setId(UUID.randomUUID());
+        video.setAssinaturaId(assinaturaId);
+        video.setOriginalUrl(videoUrl);
+        video.setCanonicalUrl(canonicalUrl);
+        video.setUrlHash(hash);
+        video.setCreatedByUsuarioId(usuarioId);
+        video.setCreatedAt(now);
+        try {
+            return videoRepository.save(video);
+        } catch (DataIntegrityViolationException e) {
+            // Concurrent request with the same URL won the race — re-fetch the winner.
+            return videoRepository.findByAssinaturaIdAndUrlHash(assinaturaId, hash)
+                    .orElseThrow(() -> new IllegalStateException("Video not found after constraint conflict", e));
+        }
     }
 
     /**
@@ -881,7 +889,6 @@ public class SnapV2Service {
                 readJsonOrNull(snap.getSnapshotVideoJson(), ProcessingSnapshotVideoResponse.class),
                 snap.getFrameCount(),
                 readJson(snap.getFramesJson(), FRAMES_TYPE),
-                snap.getOutputDir(),
                 snap.getErrorMessage(),
                 job,
                 snap.getCreatedAt(),
@@ -900,8 +907,6 @@ public class SnapV2Service {
                         job.getAttempts(),
                         job.getMaxAttempts(),
                         job.getNextRunAt(),
-                        job.getLockedAt(),
-                        job.getLockOwner(),
                         job.getStartedAt(),
                         job.getFinishedAt(),
                         job.getLastError()
@@ -1102,40 +1107,8 @@ public class SnapV2Service {
     }
 
     /**
-     * Small mutable accumulator used only for `GET /v2/videos/mine` aggregation.
-     */
-    private static final class MineVideoAccumulator {
-        private final UUID videoId;
-        private final String videoUrl;
-        private final UUID latestSnapId;
-        private final OffsetDateTime latestSnapCreatedAt;
-        private int snapCount;
-
-        private MineVideoAccumulator(UUID videoId, String videoUrl, UUID latestSnapId, OffsetDateTime latestSnapCreatedAt) {
-            this.videoId = videoId;
-            this.videoUrl = videoUrl;
-            this.latestSnapId = latestSnapId;
-            this.latestSnapCreatedAt = latestSnapCreatedAt;
-        }
-
-        private void increment() {
-            snapCount++;
-        }
-
-        private MineVideoItemResponse toResponse() {
-            return new MineVideoItemResponse(videoId, videoUrl, snapCount, latestSnapId, latestSnapCreatedAt);
-        }
-    }
-
-    /**
      * Normalized list-query parameters after endpoint-specific validation/defaulting.
      */
     private record ListQuerySpec(int offset, int limit, String sortBy, String sortDir) {
-    }
-
-    /**
-     * Generic paged result wrapper used internally to avoid duplicating slicing logic.
-     */
-    private record PagedItems<T>(int total, PageMetaResponse page, List<T> items) {
     }
 }

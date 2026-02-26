@@ -16,12 +16,11 @@ Este diretório é a base de planejamento do projeto e deve ser mantido coerente
 
 - `master-tecnico*` -> arquitetura, componentes, limites técnicos
 - `master-produto*` -> domínio, regras de negócio, fluxos de produto
+- `master-monetizacao*` -> estratégia comercial, posicionamento, GTM e pricing
+- `master-roadmap*` -> sequenciamento por entrega, escopo, prioridade, critérios de aceite
+- `master-adrs*` -> governança de decisões arquiteturais (quando criar, template, índice)
 
-### 2. Plano de execução (tático)
-
-- `entregas*` -> sequenciamento por entrega, escopo, prioridade, critérios de aceite
-
-### 3. Decisões estruturais (memória de longo prazo)
+### 2. Decisões estruturais (memória de longo prazo)
 
 - `adrs/` -> decisões estáveis que impactam direção do projeto
 
@@ -31,7 +30,7 @@ Este diretório é a base de planejamento do projeto e deve ser mantido coerente
 
 Regra prática:
 - conceito vai para `master`
-- sequência de implementação vai para `entregas`
+- sequência de implementação vai para `master-roadmap`
 - decisão estrutural vai para `ADR`
 - experimento/estudo vai para plano separado
 
@@ -47,19 +46,52 @@ Regra prática:
   - **Master Produto (Snap-first)**
   - domínio (`Snap`, `Video`, `Assinatura`, `Usuário`, `SubjectTemplate`), regras de produto, API conceitual
 
-### Template padrão de inicialização (reutilizável)
+- `prompts/masters/master-monetizacao.md`
+  - **Master Monetização**
+  - estratégia comercial, posicionamento, oferta, GTM e pricing
 
-- `prompts/templates/template-app.md`
-  - prompt base para iniciar novos projetos/apps com esta metodologia
-  - define estrutura de `prompts/`, conceitos de organização e sequência de bootstrap
+- `prompts/masters/master-roadmap.md`
+  - **Master Roadmap**
+  - sequenciamento por entrega, escopo, prioridade, critérios de aceite
 
-### Planos de execução
+- `prompts/masters/master-adrs.md`
+  - **Master ADRs**
+  - governança de ADRs: critérios de criação, template, ciclo de vida, índice
 
-- `prompts/entregas/entregas-api-snap-v2.md`
-  - escopo por entrega
-  - prioridades
-  - cronograma
-  - checklists operacionais
+### Templates e howto (reutilizáveis)
+
+- `prompts/templates/howto-metodologia.md`
+  - **Howto completo** — passo a passo para novo projeto e projeto existente
+  - inclui stack padrão pré-preenchido (Spring Boot, PostgreSQL, Linode, Flutter web, Linux service)
+  - tabela rápida de workflows, checklist de qualidade
+
+- `prompts/templates/template-projeto-novo.md`
+  - prompt de bootstrap para **novos projetos** (sem código existente)
+  - estrutura de `prompts/`, conceitos de organização, sequência de bootstrap
+
+- `prompts/templates/template-projeto-existente.md`
+  - prompt híbrido para **projetos existentes** (já tem código, sem `prompts/`)
+  - o assistente lê o código, extrai estado real e cria os planos populados
+  - surfaça decisões implícitas como ADRs candidatos, lista dívidas técnicas
+
+- `prompts/templates/template-linha-de-corte.md`
+  - para **projetos existentes onde não vale documentar o passado**
+  - cria estrutura mínima e aplica a metodologia só a partir deste ponto
+  - código legado não é auditado; documentado naturalmente quando tocado em novas entregas
+
+- `prompts/templates/base/` — **arquivos prontos para copiar para um novo projeto**
+  - `AGENTS.md` → raiz (copiar sem alterar)
+  - `CLAUDE.md` → raiz (copiar sem alterar)
+  - `CONTEXT.md` → `prompts/` (raiz de prompts/) (substituir `{{VARIÁVEIS}}`)
+  - `README.md` → raiz (substituir `{{VARIÁVEIS}}`)
+  - `master-tecnico.md` → `prompts/masters/` (preencher stack/arquitetura)
+  - `master-produto.md` → `prompts/masters/master-produto.md` (preencher domínio)
+  - `master-roadmap.md` → `prompts/masters/` (definir Entrega 1)
+  - `master-adrs.md` → `prompts/masters/` (substituir `{{SLUG}}` e `{{DATA}}`)
+  - `prompts-README.md` → `prompts/README.md` (substituir `{{SLUG}}` e `{{MES_ANO}}`)
+  - `adrs/0000-template.md` → `prompts/adrs/` (substituir `{{SLUG}}`)
+  - `adrs/README.md` → `prompts/adrs/` (copiar sem alterar)
+
 
 ### Planos de validação/experimentação
 
@@ -85,8 +117,9 @@ Regra prática:
 
 - `master-tecnico.md` = `Master Técnico`
 - `master-produto-snap.md` = `Master Produto`
-- `template-app.md` = `Template App` / `Prompt de Bootstrap`
-- `entregas-api-snap-v2.md` = `Plano de Entregas`
+- `master-monetizacao.md` = `Master Monetização`
+- `template-projeto-novo.md` = `Template App` / `Prompt de Bootstrap`
+- `master-roadmap.md` = `Plano de Entregas`
 - `mvp-tecnico.md` = `Plano MVP`
 - `player-integracao.md` = `Plano Player`
 
@@ -109,7 +142,8 @@ Quando surgir uma mudança:
 1. Atualize a **fonte de verdade** correta:
    - `master-tecnico.md` (técnico)
    - `master-produto-snap.md` (produto/domínio)
-2. Atualize o plano de execução (`entregas-api-snap-v2.md`)
+   - `master-monetizacao.md` (estratégia comercial)
+2. Atualize o plano de execução (`master-roadmap.md`)
 3. Se a decisão for estrutural/estável, registre um ADR em `prompts/adrs/`
 4. Só então execute código (ou ajuste o plano de implementação)
 
@@ -133,13 +167,21 @@ Quando surgir uma mudança:
 - compartilhamento público
 - comportamento multi-assinatura
 
-### Atualize `prompts/entregas/entregas-api-snap-v2.md` quando mudar
+### Atualize `prompts/masters/master-roadmap.md` quando mudar
 
 - escopo da próxima entrega
 - prioridade
 - cronograma/estimativa
 - critérios de aceite operacionais
 - checklists de execução
+
+### Atualize `prompts/masters/master-monetizacao.md` quando mudar
+
+- posicionamento e proposta de valor
+- ICP/personas e segmentos-alvo
+- estratégia comercial/GTM
+- pricing/empacotamento/oferta
+- hipóteses de monetização
 
 ### Atualize `prompts/estudos/mvp-tecnico.md` quando mudar
 
@@ -158,45 +200,92 @@ Quando surgir uma mudança:
 ### Nova regra de produto
 
 1. `master-produto-snap.md`
-2. `entregas-api-snap-v2.md`
+2. `master-roadmap.md`
 3. ADR (se estrutural)
 4. código
+
+> **Exemplo:** cliente pede que snaps privados expirem após 90 dias.
+> → Adiciona regra de expiração em `master-produto-snap.md`.
+> → Adiciona Slice N na entrega em andamento em `master-roadmap.md` (ou cria nova entrega se não houver entrega aberta).
+> → Cria ADR se a decisão de TTL impactar schema e tiver alternativas descartadas (ex.: soft delete vs. purge físico).
+> → Implementa.
 
 ### Mudança técnica de processamento
 
 1. `master-tecnico.md`
-2. `entregas-api-snap-v2.md`
+2. `master-roadmap.md`
 3. ADR (se estrutural)
 4. código
 
+> **Exemplo:** trocar storage de Linode para AWS S3 nativo.
+> → Atualiza seção de storage em `master-tecnico.md`.
+> → Adiciona slice em `master-roadmap.md`.
+> → Cria ADR (há alternativa descartada, impacta infra).
+> → Implementa.
+
 ### Mudança de prazo/escopo sem impacto conceitual
 
-1. `entregas-api-snap-v2.md`
+1. `master-roadmap.md`
+
+> **Exemplo:** adiar Entrega 6 para depois do smoke test.
+> → Só atualiza prioridade/ordem em `master-roadmap.md`.
+
+### Bug ou correção pontual (sem impacto estrutural)
+
+1. Corrige o código diretamente — sem ADR, sem atualizar master
+
+> **Exemplo:** typo em mensagem de erro do `GlobalExceptionHandler`.
+> → Corrige direto no código.
+
+### Bug que precisa de plano (complexo, sem mudança estrutural)
+
+Não cria ADR. Adiciona slice em `master-roadmap.md`:
+- se houver entrega em andamento → adiciona slice nela
+- se não houver entrega aberta → cria nova entrega (ex.: `Entrega 6 — Correções pós-produção`)
+- formato: `Slice N — <descrição>` com itens `B1`, `B2`... (bloqueantes) ou `I1`, `I2`... (hardening)
+- usar quando: afeta múltiplos arquivos, tem risco de regressão ou requer sequenciamento
+
+> **Exemplo:** frame corrompido em vídeos acima de 2GB.
+> → Não há entrega aberta → cria `Entrega 6 — Correções pós-produção` em `master-roadmap.md`.
+> → Adiciona `Slice 1 — frame corrompido (>2GB)` com B1 (reproduzir), B2 (corrigir FfmpegService), B3 (teste regressão).
+> → Implementa na ordem.
+
+### Bug que revela decisão estrutural
+
+1. `master-tecnico.md` ou `master-produto-snap.md` (atualiza a regra)
+2. ADR (se satisfizer 2+ critérios)
+3. `master-roadmap.md` (adiciona slice na entrega em andamento ou cria nova entrega)
+4. código
+
+> **Exemplo:** bug de concorrência no worker revela que o modelo de lock por instância é insuficiente para múltiplos workers.
+> → Atualiza estratégia de lock em `master-tecnico.md`.
+> → Cria ADR (alternativa real: lock por instância vs. lock distribuído; impacta schema e infra).
+> → Adiciona slice em `master-roadmap.md`.
+> → Implementa.
 
 ### Novo projeto / novo app (bootstrap)
 
-1. `template-app.md` (gerar estrutura e rascunhos iniciais)
+1. `template-projeto-novo.md` (gerar estrutura e rascunhos iniciais)
 2. `master-*` (produto/técnico)
-3. `entregas-*`
+3. `master-roadmap.md`
 4. ADRs iniciais (se houver decisões estruturais)
+
+> **Exemplo:** novo módulo de inspeção industrial derivado do snap-player-api.
+> → Usa `template-projeto-novo.md` para gerar estrutura de `prompts/`.
+> → Cria `master-tecnico.md` e `master-produto.md` do novo módulo.
+> → Define primeiras entregas em `master-roadmap.md`.
+> → Registra ADR de multi-tenancy se a decisão for diferente do snap-player-api.
 
 ## ADRs (como usar)
 
-Use ADR para decisões que:
-- mudam direção do projeto
-- impactam vários módulos
-- devem ser lembradas meses depois
+Use ADR para decisões que satisfaçam **2 ou mais** dos critérios:
+- há alternativa real que foi descartada
+- impacta schema, contrato de API ou infraestrutura
+- um dev novo reverteria sem entender o porquê
+- tem trade-offs relevantes que devem ser explícitos
 
-Exemplos já decididos neste projeto:
-- `Snap` como entidade principal
-- fase inicial síncrona
-- single domain com isolamento por assinatura
-- template padrão por assinatura
-
-Formato:
-- curto (1 arquivo)
-- com contexto, decisão e consequências
-- sem excesso de detalhes operacionais
+> **Merece ADR:** escolha de fila em DB vs. broker; paginação nativa vs. in-memory; sync vs. async como padrão; storage local vs. S3.
+> **Não merece ADR:** typo corrigido; retornar 201 vs. 200; truncar requestId; comparação timing-safe de token.
 
 ## Revisão e higiene dos prompts
 
@@ -218,23 +307,23 @@ Situação resumida da implementação (com base no código e no plano):
 - `Entrega 1`: concluída (API `v2` Snap-first síncrona)
 - `Entrega 2`: concluída (share público + listas `mine`)
 - `Entrega 3`: concluída (assinatura no request, token por feature flag, paginação/ordenação, observabilidade mínima)
-- `Entrega 4`: em andamento (slices 1-3 implementados: fila em DB, worker local, retry/backoff, recuperação de stale lock, cleanup e telemetria de jobs)
+- `Entrega 4`: concluída (slices 1-8: fila em DB, worker local, retry/backoff, stale recovery, cleanup, hardening, async padrão, heartbeat e Actuator)
+- `Entrega 5`: concluída (storage S3 compatível + fallback local persistente + keys estáveis por `snapId`)
 
 ## Pendências consolidadas (código)
 
 ### Curto prazo (mais provável próxima execução)
 
-- decidir quando ativar `app.snap.asyncCreateEnabled=true` por padrão em dev/homolog
-- validar smoke manual completo em modo assíncrono (create -> polling -> share/public -> métricas)
-- avaliar necessidade de endpoint de progresso dedicado (payload menor que `GET /v2/snaps/{id}`)
+- configurar variáveis reais do S3/Linode e validar upload em ambiente alvo
+- validar smoke manual completo em modo assíncrono com Actuator (`/actuator/health`, `/actuator/metrics`)
+- preparar docker-compose de produção com health check e limites de recursos
 
-### Médio prazo (Entrega 4 / endurecimento)
+### Médio prazo (produção / pós-Entrega 5)
 
 - endurecimento para ambiente distribuído:
-  - heartbeat/refresh de lock durante jobs longos
   - tuning de claim/batch/timeout por ambiente
   - estratégia de idempotência/reprocessamento explícita
-- telemetria externa (Actuator/Prometheus/OpenTelemetry) substituindo snapshots in-memory
+- Prometheus/OpenTelemetry (sobre Actuator) para telemetria externa mais completa
 - persistência/infra alvo do master técnico:
   - PostgreSQL
   - storage S3 compatível
@@ -248,7 +337,7 @@ Situação resumida da implementação (com base no código e no plano):
 
 ## Pendências consolidadas (planos/documentação)
 
-- manter `prompts/entregas/entregas-api-snap-v2.md` como espelho fiel do progresso da Entrega 4 (slices e critérios operacionais)
+- manter `prompts/masters/master-roadmap.md` como espelho fiel do progresso das Entregas 5-7 (produção)
 - revisar `prompts/estudos/player-integracao.md` para refletir nomenclatura `snap-player` e integração com `v2` assíncrona
 - quando houver decisão estrutural nova (ex.: progresso dedicado / worker externo), registrar ADR novo antes da implementação
 - manter `http/*.http` atualizado a cada endpoint/parâmetro novo (regra já vigente)
@@ -272,16 +361,18 @@ Pontos que ainda exigem disciplina:
 Estrutura em uso:
 - `prompts/README.md` (índice/governança)
 - `prompts/masters/`
+  - `CONTEXT.md` (ponto de entrada — ler primeiro)
   - `master-tecnico.md`
   - `master-produto-snap.md`
-- `prompts/entregas/`
-  - `entregas-api-snap-v2.md`
+  - `master-monetizacao.md`
+  - `master-roadmap.md`
+  - `master-adrs.md`
 - `prompts/adrs/`
 - `prompts/estudos/`
   - `mvp-tecnico.md`
   - `player-integracao.md`
 - `prompts/templates/`
-  - `template-app.md`
+  - `template-projeto-novo.md`
 
 ### Estratégia para próximas reorganizações (se necessário)
 
@@ -321,7 +412,7 @@ Tratar os prompts como parte do projeto:
 ## Checklist rápido antes de fechar uma decisão
 
 - A regra está no `master` correto?
-- O `entregas-api-snap-v2.md` reflete essa regra?
+- O `master-roadmap.md` reflete essa regra?
 - Precisa de ADR?
 - O nome usado nos arquivos está consistente (`Snap`, `Video`, `Assinatura`, `subject`)?
 - Há impacto no MVP ou no Player a registrar?

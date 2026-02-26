@@ -3,7 +3,6 @@ package com.snapplayerapi.api.v2.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -55,8 +54,7 @@ public class SnapEntity {
     @Column(name = "data_filmagem", nullable = false)
     private OffsetDateTime dataFilmagem;
 
-    @Lob
-    @Column(name = "video_url", nullable = false)
+    @Column(name = "video_url", nullable = false, columnDefinition = "text")
     private String videoUrl;
 
     @Column(name = "start_seconds")
@@ -89,35 +87,28 @@ public class SnapEntity {
     @Column(name = "subject_id", nullable = false, length = 200)
     private String subjectId;
 
-    @Lob
-    @Column(name = "subject_json", nullable = false)
+    @Column(name = "subject_json", nullable = false, columnDefinition = "text")
     private String subjectJson;
 
-    @Lob
-    @Column(name = "overlay_json")
+    @Column(name = "overlay_json", columnDefinition = "text")
     private String overlayJson;
 
-    @Lob
-    @Column(name = "video_probe_json")
+    @Column(name = "video_probe_json", columnDefinition = "text")
     private String videoProbeJson;
 
-    @Lob
-    @Column(name = "snapshot_video_json")
+    @Column(name = "snapshot_video_json", columnDefinition = "text")
     private String snapshotVideoJson;
 
-    @Lob
-    @Column(name = "frames_json")
+    @Column(name = "frames_json", columnDefinition = "text")
     private String framesJson;
 
     @Column(name = "frame_count", nullable = false)
     private Integer frameCount;
 
-    @Lob
-    @Column(name = "output_dir")
+    @Column(name = "output_dir", columnDefinition = "text")
     private String outputDir;
 
-    @Lob
-    @Column(name = "error_message")
+    @Column(name = "error_message", columnDefinition = "text")
     private String errorMessage;
 
     @Column(name = "created_at", nullable = false)

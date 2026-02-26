@@ -10,9 +10,11 @@ import com.snapplayerapi.api.v2.dto.VideoSnapsResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import com.snapplayerapi.api.v2.config.SnapProperties;
 import com.snapplayerapi.api.v2.service.SnapV2Service;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,9 +54,11 @@ public class SnapV2Controller {
     public static final String ASSINATURA_TOKEN_HEADER = "X-Assinatura-Token";
 
     private final SnapV2Service snapV2Service;
+    private final SnapProperties snapProperties;
 
-    public SnapV2Controller(SnapV2Service snapV2Service) {
+    public SnapV2Controller(SnapV2Service snapV2Service, SnapProperties snapProperties) {
         this.snapV2Service = snapV2Service;
+        this.snapProperties = snapProperties;
     }
 
     /**
@@ -69,7 +73,9 @@ public class SnapV2Controller {
             @RequestHeader(name = ASSINATURA_TOKEN_HEADER, required = false) String assinaturaToken,
             @RequestBody @Valid CreateSnapRequest request
     ) {
-        return ResponseEntity.ok(snapV2Service.createSnap(assinaturaCodigo, assinaturaToken, request));
+        SnapResponse response = snapV2Service.createSnap(assinaturaCodigo, assinaturaToken, request);
+        HttpStatus status = snapProperties.isAsyncCreateEnabled() ? HttpStatus.ACCEPTED : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(response);
     }
 
     /**

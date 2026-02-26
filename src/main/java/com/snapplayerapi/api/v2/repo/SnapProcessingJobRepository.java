@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -52,6 +53,21 @@ public interface SnapProcessingJobRepository extends JpaRepository<SnapProcessin
     Optional<SnapProcessingJobEntity> findNextClaimableJobForUpdate();
 
     /**
+     * Renews `locked_at` for all `RUNNING` jobs owned by this worker instance.
+     *
+     * <p>Called periodically by the worker heartbeat to prevent stale-recovery from reclaiming
+     * jobs that are still actively executing. The heartbeat interval must be well below
+     * `workerLockTimeoutSeconds` so at least one renewal fires before the lock expires.</p>
+     */
+    @Modifying
+    @Query("""
+            update SnapProcessingJobEntity j
+            set j.lockedAt = :now, j.updatedAt = :now
+            where j.status = 'RUNNING' and j.lockOwner = :owner
+            """)
+    int refreshLockedAtForRunningOwner(@Param("owner") String owner, @Param("now") OffsetDateTime now);
+
+    /**
      * Aggregates counts by status for the internal observability endpoint.
      */
     @Query("""
@@ -64,13 +80,14 @@ public interface SnapProcessingJobRepository extends JpaRepository<SnapProcessin
     /**
      * Aggregates terminal jobs count and average completion duration in milliseconds.
      *
-     * <p>Duration is estimated as `finishedAt - startedAt` and only includes rows where both values
-     * are present (completed or failed after actual execution start).</p>
+     * <p>Duration is estimated as `finishedAt - startedAt` and only includes rows where both
+     * timestamps are present (completed or failed after actual execution started).
+     * Uses ANSI SQL interval arithmetic compatible with PostgreSQL and H2 in Postgres mode.</p>
      */
     @Query(value = """
             select
               count(*) as jobs_count,
-              coalesce(avg(datediff('MILLISECOND', started_at, finished_at)), 0)
+              coalesce(avg(extract(epoch from (finished_at - started_at)) * 1000), 0)
             from snap_processing_job
             where status in ('COMPLETED', 'FAILED')
               and started_at is not null

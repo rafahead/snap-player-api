@@ -17,18 +17,19 @@
 ### 3) Rode as consultas/listagens na sequência usando os IDs capturados
 ### 4) Se quiser forçar manualmente, substitua `{{lastSnapId}}` / `{{lastVideoId}}` nos requests
 ###
-### Modo assíncrono (Entrega 4 slices 1-3):
-### - Ative `app.snap.asyncCreateEnabled=true`
-### - `POST /v2/snaps` passa a retornar `status=PENDING`
-### - `SnapResponse` (create/get by id) passa a incluir `job` com estado da fila/worker
-### - Use `GET /v2/snaps/{snapId}` como polling até `COMPLETED` / `FAILED`
+### Modo assíncrono (padrão desde Slice 6 / Entrega 4):
+### - `POST /v2/snaps` retorna `202 Accepted` com `status=PENDING` imediatamente
+### - `SnapResponse` (create/get by id) inclui campo `job` com estado da fila/worker
+### - Use `GET /v2/snaps/{snapId}` como polling até `status=COMPLETED` ou `FAILED`
 ### - O worker local (polling DB) usa `app.snap.worker*` e está habilitado por padrão
 ### - Retentativas usam backoff exponencial (`workerRetry*`), com recuperação de `RUNNING` órfão
 ### - Cleanup de jobs antigos usa `app.snap.jobCleanup*`
+### - Para modo síncrono local use: `--app.snap.asyncCreateEnabled=false` (ou config ".run/Sync")
 
 @baseUrl = http://127.0.0.1:8080
 @assinaturaCodigo = default
 @assinaturaToken = dev-default-token
+@internalToken =
 @nickname = rafahead
 
 ### POST Create Snap (videoUrl)
@@ -66,11 +67,13 @@ X-Request-Id: v2-create-snap-001
 }
 > {%
   // Encadeia o fluxo manual no IntelliJ HTTP Client sem copiar/colar IDs da resposta.
-  if (response.status === 200 && response.body) {
+  // 201 = modo síncrono (COMPLETED imediato); 202 = modo assíncrono (PENDING + job enfileirado).
+  if ((response.status === 201 || response.status === 202) && response.body) {
     if (response.body.snapId) client.global.set("lastSnapId", response.body.snapId);
     if (response.body.videoId) client.global.set("lastVideoId", response.body.videoId);
     client.log("lastSnapId=" + (response.body.snapId || "<missing>"));
     client.log("lastVideoId=" + (response.body.videoId || "<missing>"));
+    client.log("snap.status=" + (response.body.status || "<missing>"));
   }
 %}
 
