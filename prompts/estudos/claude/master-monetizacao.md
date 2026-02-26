@@ -74,6 +74,9 @@ conversa com novos clientes.
 - Laudo hoje é desconectado da evidência visual — dor real e custosa
 - Acesso via rede de contatos disponível
 - Potencial de funding via Rede PI Petrobras / FINEP / EMBRAPII
+- Normas como BSEE, ANP, ISO 13702 exigem rastreabilidade dos laudos
+- Assinatura digital e auditoria dos registros são requisitos críticos
+- Ambientes offshore têm requisitos de segurança de dados específicos
 
 **Perfil de cliente prioritário**
 
