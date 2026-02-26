@@ -7,7 +7,7 @@ Fonte de verdade para arquitetura e decisões técnicas de processamento.
 Use junto com:
 - `CONTEXT.md` (estado atual e próximas prioridades)
 - `prompts/masters/master-produto-snap.md` (domínio e regras de produto)
-- `prompts/entregas/entregas-api-snap-v2.md` (sequenciamento de entregas)
+- `prompts/masters/master-roadmap.md` (sequenciamento de entregas)
 
 ---
 

@@ -68,6 +68,5 @@ Nenhuma coluna JSON deve aparecer com `udt_name = 'oid'`.
 
 ## Relação com planos
 
-- Revisão técnica: `prompts/entregas/revisao-tecnica-pre-producao.md` (item B3)
-- Execução: `prompts/entregas/entregas-api-snap-v2.md` (Entrega 4, Slice 4)
+- Execução: `prompts/masters/master-roadmap.md` (Entrega 4, Slice 4)
 - Arquitetura técnica: `prompts/masters/master-tecnico.md`

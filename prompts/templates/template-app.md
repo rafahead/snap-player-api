@@ -20,42 +20,24 @@ Criar a base de planejamento do projeto em `prompts/`, com estrutura, conceitos 
 
 ## Resultado esperado (saída do bootstrap)
 
-Ao usar este prompt, o Codex/assistente deve produzir (ou propor) a estrutura inicial:
+Ao usar este prompt, o assistente deve produzir (ou propor) a estrutura inicial:
 
-- `prompts/README.md`
-  - governança dos planos
-  - mapa dos arquivos
-  - regra de atualização
-  - convenções de nomenclatura
+- `prompts/masters/CONTEXT-CONFIG.md` — regras de formato de resposta da IA (conteúdo fixo)
+- `prompts/masters/CONTEXT.md` — ponto de entrada da sessão
+- `prompts/masters/master-tecnico.md` — arquitetura, stack, processamento, infra
+- `prompts/masters/master-produto-<slug>.md` — domínio, regras de negócio, API conceitual
+- `prompts/masters/master-roadmap.md` — entregas, slices, critérios de aceite
+- `prompts/masters/master-adrs.md` — governança de ADRs (critérios, template, índice)
+- `prompts/adrs/0000-template.md` — template padrão de ADR
+- `prompts/adrs/README.md` — índice dos ADRs
+- `prompts/adrs/0001-<decisao-inicial>.md` (opcional) — primeiras decisões estruturais
+- `prompts/README.md` — governança: mapa, regras, workflows, exemplos
 
-- `prompts/master-produto-<slug>.md`
-  - domínio
-  - regras de negócio
-  - fluxos do produto
-  - API conceitual (se aplicável)
+Arquivos opcionais:
+- `prompts/masters/master-monetizacao.md` — estratégia comercial (se aplicável)
+- `prompts/estudos/<tema>.md` — experimentos ou integrações pontuais
 
-- `prompts/masters/master-tecnico.md`
-  - arquitetura
-  - componentes
-  - decisões técnicas-base
-  - contratos técnicos e restrições
-
-- `prompts/entregas-<slug>-v1.md`
-  - plano tático por entregas
-  - recortes de escopo
-  - critérios de aceite
-  - ordem de implementação
-
-- `prompts/adrs/0000-template.md`
-  - template padrão de ADR
-
-- `prompts/adrs/0001-<decisao-inicial>.md` (opcional)
-  - primeira(s) decisão(ões) estruturais já estabilizadas
-
-Arquivos opcionais (quando fizer sentido):
-- `prompts/estudos/mvp-tecnico.md`
-- `prompts/<integracao-cliente>.md`
-- `prompts/<estudo-ou-experimento>.md`
+> Ver guia detalhado em `prompts/templates/howto-metodologia.md`.
 
 ## Conceitos obrigatórios da organização (metodologia)
 
@@ -110,26 +92,32 @@ Quando surgir mudança:
 
 ```text
 prompts/
-  README.md                         # governança da documentação/plano
-  master-tecnico.md                 # fonte de verdade técnica
-  master-produto-<slug>.md          # fonte de verdade de produto/domínio
-  entregas-<slug>-v1.md             # execução por entregas (fase atual)
-  mvp-tecnico.md                    # (opcional) validação técnica inicial
-  <integracao-cliente>.md           # (opcional) plano de integração
-  <estudo-ou-experimento>.md        # (opcional) estudo separado
+  README.md                         # governança: mapa, regras, workflows, exemplos
+  masters/
+    CONTEXT-CONFIG.md               # regras de formato de resposta da IA (conteúdo fixo)
+    CONTEXT.md                      # ponto de entrada da sessão
+    master-tecnico.md               # fonte de verdade técnica
+    master-produto-<slug>.md        # fonte de verdade de produto/domínio
+    master-roadmap.md               # execução por entregas (slices, critérios de aceite)
+    master-adrs.md                  # governança de ADRs (critérios, template, índice)
+    master-monetizacao.md           # (opcional) estratégia comercial
   adrs/
-    README.md                       # índice/guia dos ADRs (opcional mas recomendado)
+    README.md                       # índice dos ADRs
     0000-template.md                # template de ADR
-    0001-<decisao>.md               # ADRs reais
+    000N-<slug-da-decisao>.md       # ADRs reais
+  templates/
+    howto-metodologia.md            # guia completo de uso da metodologia
+    template-app.md                 # este arquivo
+  estudos/                          # (opcional) experimentos, integrações pontuais
 ```
 
-## Convenções de nomenclatura (recomendadas)
+## Convenções de nomenclatura
 
-- `master-tecnico.md`
-- `master-produto-<slug>.md`
-- `entregas-<slug>-vN.md`
-- `mvp-tecnico.md`
-- `adrs/000X-<slug-da-decisao>.md`
+- `master-tecnico.md` — sempre este nome
+- `master-produto-<slug>.md` — slug curto e estável do produto
+- `master-roadmap.md` — sempre este nome (não versionar; editar in-place)
+- `master-adrs.md` — sempre este nome
+- `adrs/000X-<slug-da-decisao>.md` — número sequencial permanente
 
 Onde `<slug>`:
 - curto
@@ -274,12 +262,19 @@ Sua tarefa é criar o plano de inicialização e a estrutura de documentação e
 - Restrições legais/compliance:
 - Restrições operacionais:
 
-### 8. Direção técnica inicial (se já existir)
-- Stack preferida:
-- Banco:
-- Hospedagem:
+### 8. Direção técnica inicial
+
+Stack padrão (pré-preenchido — alterar se necessário):
+- Backend: Java 17 + Spring Boot 3.x
+- Banco: PostgreSQL + Flyway
+- Storage: Linode Object Storage (S3-compatível, AWS SDK v2)
+- Frontend: Flutter web
+- Deploy: serviço Linux via systemd (sem Docker na fase inicial)
+- Servidor: Linode
+
+Ajustar se diferente:
 - Arquitetura desejada (monolito/modular/microserviços):
-- Processamento síncrono/assíncrono:
+- Processamento síncrono/assíncrono na fase 1:
 
 ### 9. Escopo inicial e não-escopo
 - Deve entrar na v1:
@@ -290,16 +285,68 @@ Sua tarefa é criar o plano de inicialização e a estrutura de documentação e
 - Dúvida:
 - Dúvida:
 
+## Conteúdo fixo obrigatório
+
+### CONTEXT-CONFIG.md (copiar exatamente — não alterar)
+
+```
+Utilize essas configurações de contexto:
+- gatilho preferencial para economia de tokens: `modo silencioso`
+- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
+- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
+- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
+- só o resultado, sem explicação
+- sem bullets/listas (exceto se eu pedir explicitamente)
+- não mostre alterações/exclusões/adições de código, texto ou arquivos
+- não mostre comando nem passo a passo
+- não mostre output "explored"
+- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
+- não repita trechos de arquivos lidos; use apenas o resumo final
+- se precisar, pergunte antes de detalhar
+- quando terminar um tópico, só apresente o resultado final da entrega
+- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
+- você tem autorização para rodar comandos
+- você tem acesso ao código-fonte do projeto
+- você tem acesso a arquivos de configuração e documentação
+- você tem acesso a arquivos de planejamento e estratégia
+- você tem acesso ao diretório raiz do projeto, incluindo subdiretórios
+```
+
+### Seção obrigatória no topo do CONTEXT.md
+
+```markdown
+## Formato de resposta (PRIORIDADE MÁXIMA — aplicar sempre)
+
+Gatilho ativo: `modo silencioso`
+
+Regras obrigatórias:
+- Sem updates intermediários nem mensagens de progresso (só em bloqueio crítico)
+- Só resultado final, em 1 linha — esta regra tem prioridade sobre qualquer outra de formatação
+- Sem explicações, sem bullets/listas (salvo pedido explícito)
+- Não exibir alterações/exclusões/adições de código, texto ou arquivos
+- Não exibir comandos nem passos executados
+- Não exibir logs, stacktrace, stdout/stderr, output de testes ou de ferramentas
+- Não repetir trechos de arquivos lidos; usar apenas o resumo final
+- Em caso de erro, responder apenas o bloqueio em 1 linha (sem logs)
+- Se precisar de informação, perguntar antes de detalhar
+
+Autorizações permanentes:
+- Rodar comandos
+- Acesso completo ao código-fonte, configurações, documentação e planejamento do projeto
+```
+
 ## Saída esperada do assistente
 
-1. Propor a estrutura de `prompts/` (com nomes de arquivos).
-2. Criar/rascunhar `prompts/README.md` com governança e conceitos de organização.
-3. Criar `master-produto-<slug>.md` (rascunho inicial).
-4. Criar `master-tecnico.md` (rascunho inicial).
-5. Criar `entregas-<slug>-v1.md` com entregas e critérios de aceite.
-6. Criar `adrs/0000-template.md`.
-7. Sugerir ADRs iniciais (se aplicável).
-8. Listar hipóteses e perguntas pendentes.
+1. Criar `prompts/masters/CONTEXT-CONFIG.md` com o conteúdo fixo acima.
+2. Criar `prompts/masters/CONTEXT.md` com a seção obrigatória no topo + estado inicial do projeto.
+3. Criar `prompts/masters/master-produto-<slug>.md` (rascunho inicial).
+4. Criar `prompts/masters/master-tecnico.md` (rascunho inicial, stack padrão pré-preenchido).
+5. Criar `prompts/masters/master-roadmap.md` com Entrega 1 e critérios de aceite.
+6. Criar `prompts/masters/master-adrs.md` (governança — copiar de snap-player-api, zerar índice).
+7. Criar `prompts/adrs/0000-template.md` e `prompts/adrs/README.md`.
+8. Criar `prompts/README.md` com governança, mapa e workflows.
+9. Sugerir ADRs iniciais para decisões já claras.
+10. Listar hipóteses e perguntas pendentes.
 ```
 
 ## Observação de uso

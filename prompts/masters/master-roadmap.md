@@ -18,7 +18,7 @@ Fontes de verdade:
 - Entrega 3 — CONCLUÍDA
 - Entrega 4 — CONCLUÍDA (slices 1-8)
   - Slices 1-3: fila DB + worker + async por feature flag
-  - Slice prereq B1-B4: CONCLUÍDO em 2026-02-26 (ver `prompts/entregas/entregas-api-snap-v2.md`)
+  - Slice prereq B1-B4: CONCLUÍDO em 2026-02-26
   - Slice 5 — hardening contrato/segurança: CONCLUÍDO em 2026-02-26 (I1-I7, M1-M2)
   - Slice 6 — rollout async como padrão: CONCLUÍDO em 2026-02-26
   - Slice 7 — worker hardening: CONCLUÍDO em 2026-02-26

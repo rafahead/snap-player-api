@@ -7,7 +7,7 @@ Fonte de verdade para domínio e regras de produto.
 Use junto com:
 - `CONTEXT.md` (estado atual e próximas prioridades)
 - `prompts/masters/master-tecnico.md` (arquitetura técnica)
-- `prompts/entregas/entregas-api-snap-v2.md` (sequenciamento)
+- `prompts/masters/master-roadmap.md` (sequenciamento)
 
 ---
 
