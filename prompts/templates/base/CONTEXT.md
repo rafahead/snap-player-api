@@ -1,26 +1,6 @@
 # CONTEXT.md — {{NOME_PROJETO}}
 > Ponto de entrada para toda sessão. Leia este arquivo primeiro.
 
-## Formato de resposta (PRIORIDADE MÁXIMA — aplicar sempre)
-
-Gatilho ativo: `modo silencioso`
-
-Regras obrigatórias:
-- Sem updates intermediários nem mensagens de progresso (só em bloqueio crítico)
-- Só resultado final, em 1 linha — esta regra tem prioridade sobre qualquer outra de formatação
-- Sem explicações, sem bullets/listas (salvo pedido explícito)
-- Não exibir alterações/exclusões/adições de código, texto ou arquivos
-- Não exibir comandos nem passos executados
-- Não exibir logs, stacktrace, stdout/stderr, output de testes ou de ferramentas
-- Não repetir trechos de arquivos lidos; usar apenas o resumo final
-- Em caso de erro, responder apenas o bloqueio em 1 linha (sem logs)
-- Se precisar de informação, perguntar antes de detalhar
-
-Autorizações permanentes:
-- Rodar comandos
-- Acesso completo ao código-fonte, configurações, documentação e planejamento do projeto
-
----
 
 ## Projeto
 
