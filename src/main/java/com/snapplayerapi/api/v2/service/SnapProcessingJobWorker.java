@@ -358,7 +358,9 @@ public class SnapProcessingJobWorker {
                 snap.getDataFilmagem(),
                 processingSubject,
                 overlay,
-                null
+                // Entrega 5: worker uses the same `snapId` key strategy as the sync path, ensuring
+                // artifact URLs remain stable across retries and stale-job recovery.
+                snap.getId().toString()
         );
     }
 

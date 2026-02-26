@@ -168,7 +168,9 @@ public class SnapV2Service {
                 request.dataFilmagem(),
                 effectiveSubject,
                 request.overlay(),
-                null
+                // Entrega 5: reuse `snapId` as the artifact id hint so storage keys stay stable and
+                // retries/worker reprocessing overwrite the same logical objects.
+                snapId.toString()
         );
 
         // Entrega 1 remains synchronous and reuses the MVP implementation via gateway abstraction.

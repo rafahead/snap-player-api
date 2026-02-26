@@ -12,7 +12,7 @@
 Revisão completa do código das Entregas 1–4 (slices 1–3) cruzando:
 - código implementado via Codex CLI
 - paradigmas decididos nos masters e ADRs
-- novos paradigmas discutidos neste plano (`prompts/masters/revisao-tecnica-pre-producao.md`)
+- novos paradigmas discutidos neste plano (`prompts/entregas/revisao-tecnica-pre-producao.md`)
 
 Os riscos foram classificados em três faixas:
 

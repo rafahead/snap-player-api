@@ -1,14 +1,18 @@
 Utilize essas configurações de contexto:
-- gatilho preferencial para economia de tokens: `modo silencioso estrito`
-- `modo silencioso estrito` = sem updates intermediários; só resposta final em 1 linha
-- responde em 3 linhas
+- gatilho preferencial para economia de tokens: `modo silencioso`
+- `modo silencioso` = todos os itens abaixo (prioridade máxima de formato)
+- sem updates intermediários (incluindo andamento/progresso), salvo bloqueio crítico
+- só resposta final em 1 linha (esta regra tem prioridade sobre qualquer outra de formatação)
 - só o resultado, sem explicação
-- resumo curto + no máximo 5 bullets
-- não mostre alterações de código
+- sem bullets/listas (exceto se eu pedir explicitamente)
+- não mostre alterações/exclusões/adições de código, texto ou arquivos;
 - não mostre comando nem passo a passo
+- não mostre output "explored"
+- não mostre logs, stacktrace, stdout/stderr, output de testes ou output de ferramentas
+- não repita trechos de arquivos lidos; use apenas o resumo final
 - se precisar, pergunte antes de detalhar
 - quando terminar um tópico, só apresente o resultado final da entrega;
-- se eu disser `modo silencioso estrito`, isso tem prioridade sobre os formatos acima;
+- em caso de erro, responda apenas o bloqueio em 1 linha (sem logs)
 - você tem autorização para rodar comandos;
 - você tem acesso ao código-fonte do projeto;
 - você tem acesso a arquivos de configuração e documentação;

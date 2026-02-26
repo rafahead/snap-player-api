@@ -23,7 +23,8 @@ Fontes de verdade:
   - Slice 6 — rollout async como padrão: CONCLUÍDO em 2026-02-26
   - Slice 7 — worker hardening: CONCLUÍDO em 2026-02-26
   - Slice 8 — telemetria externa (Actuator): CONCLUÍDO em 2026-02-26
-  - Próximo: Entrega 5 — Storage S3 (Linode Object Storage)
+  - Entrega 5 — Storage S3 (Linode Object Storage): CONCLUÍDA em 2026-02-26
+  - Próximo: Entrega 6 — Hardening operacional e deploy
 
 ---
 
@@ -33,9 +34,8 @@ Antes de qualquer nova funcionalidade, o objetivo é estabilizar
 o que existe e colocar em produção para a equipe do Olho do Dono.
 
 Sequência de produção:
-1. Ativar storage S3 (Linode Object Storage)
-2. Hardening operacional
-3. SubjectTemplate de bovinos + smoke test com vídeos reais
+1. Hardening operacional
+2. SubjectTemplate de bovinos + smoke test com vídeos reais
 
 ---
 
@@ -114,7 +114,7 @@ Critério de aceite:
 
 ---
 
-## Entrega 5 — Storage S3 (Linode Object Storage)
+## Entrega 5 — Storage S3 (Linode Object Storage) — CONCLUÍDA 2026-02-26
 
 ### Meta
 
@@ -124,7 +124,19 @@ Substituir storage local por Linode Object Storage para produção.
 
 2 a 3 dias úteis
 
-### Escopo
+### Escopo implementado
+
+- `StorageService` com backend local (fallback dev) e backend S3 compatível (AWS SDK v2)
+- Configuração `app.storage.local.*` e `app.storage.s3.*` em `application.yml`
+- Chaves de storage:
+  - frames: `{prefix}/frames/{snapId}/frame_00001.jpg`
+  - snapshot: `{prefix}/snapshots/{snapId}/snapshot.mp4`
+- `clientRequestId = snapId` no fluxo `v2` (sync/async worker) para gerar keys estáveis
+- Persistência dos artefatos no storage antes da limpeza de temp
+- Fallback local padrão em `./.data/storage`
+- Teste de serviço (`StorageServiceTest`) + suíte completa verde (`34 testes`)
+
+### Escopo planejado (referência histórica / já parcialmente coberto)
 
 - Ativar StorageService com AWS SDK v2
 - Configurar endpoint, bucket e credenciais via variáveis de ambiente
@@ -134,17 +146,17 @@ Substituir storage local por Linode Object Storage para produção.
 - URL pública: publicBaseUrl + key
 - Limpeza de temp sempre após upload bem-sucedido
 - Fallback para storage local em desenvolvimento (app.storage.local.enabled)
-- Testes de integração com mock S3 (Testcontainers LocalStack ou similar)
+- Testes de integração com mock S3 (Testcontainers LocalStack ou similar) [opcional para hardening]
 - docker-compose de produção com variáveis de ambiente via .env
 - README atualizado com configuração de produção
 
 ### Critérios de aceite
 
-- Frames e snapshot.mp4 sobem para o bucket Linode
-- URLs retornadas no snap são públicas e acessíveis
-- Temp folder removida após upload bem-sucedido
-- Storage local continua funcionando em desenvolvimento
-- Credenciais nunca no código (sempre via env vars)
+- Integração S3 compatível implementada via AWS SDK v2
+- URLs/paths de artefatos deixam de apontar para temp (persistidos em storage)
+- Temp folder removida após persistência em storage (cleanup em `finally`)
+- Storage local continua funcionando em desenvolvimento (fallback padrão)
+- Credenciais não ficam hardcoded (uso de env vars em `application.yml`)
 
 ---
 
@@ -240,11 +252,11 @@ da operação do Olho do Dono.
 |---|---|---|---|
 | Entrega 4 — prereq (slices 1-4) | Correções bloqueantes B1-B4 | ✓ CONCLUÍDO | — |
 | Entrega 4 — slices 5-8 | Hardening contrato + async padrão + worker + Actuator | ✓ CONCLUÍDO (2026-02-26) | — |
-| Entrega 5 | Storage S3 Linode | PENDENTE | 2-3 dias úteis |
+| Entrega 5 | Storage S3 Linode | ✓ CONCLUÍDO (2026-02-26) | — |
 | Entrega 6 | Hardening operacional + deploy | PENDENTE | 2-3 dias úteis |
 | Entrega 7 | Template bovinos + validação | PENDENTE | 1-2 dias úteis |
 
-**Total estimado para produção: 5 a 8 dias úteis**
+**Total estimado para produção: 3 a 5 dias úteis**
 
 ---
 

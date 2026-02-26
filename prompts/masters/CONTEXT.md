@@ -102,6 +102,14 @@ Dois repositórios:
     - métricas customizadas de jobs no Actuator (`snap.jobs.*`)
     - `X-Request-Id` truncado a 64 chars para correlação/logs
 
+- Entrega 5 — CONCLUÍDA (2026-02-26): Storage S3 + fallback local
+  - `StorageService` com backend local (dev) e S3 compatível (AWS SDK v2 / Linode)
+  - `app.storage.local.*` e `app.storage.s3.*` adicionados ao `application.yml`
+  - keys de artefatos: `frames/{snapId}/...` e `snapshots/{snapId}/snapshot.mp4`
+  - `clientRequestId` dos fluxos `v2` passa a carregar `snapId` para garantir key estável
+  - `ProcessingVideoFrameService` persiste artefatos em storage antes do cleanup temp
+  - temp cleanup em `finally` preservado; fallback local padrão em `./.data/storage`
+
 ### O que está pendente (prioridade para produção)
 
 Ver seção "Próximas prioridades" abaixo.
@@ -110,19 +118,7 @@ Ver seção "Próximas prioridades" abaixo.
 
 ## Próximas prioridades — Foco em produção (Olho do Dono)
 
-### PRIORIDADE 1 — Storage S3 (Linode Object Storage)
-
-Substituir storage local por S3 compatível.
-Configuração já prevista em application.yml (master técnico).
-Necessário para ambiente de produção.
-
-Pendências:
-- Ativar StorageService com AWS SDK v2
-- Configurar endpoint, bucket, credenciais via variáveis de ambiente
-- Testar upload de frames e snapshot.mp4
-- Garantir limpeza de temp após upload bem-sucedido
-
-### PRIORIDADE 2 — Hardening operacional
+### PRIORIDADE 1 — Hardening operacional
 
 - Variáveis de ambiente para todos os segredos (sem hardcode)
 - docker-compose de produção separado do de desenvolvimento
@@ -130,7 +126,7 @@ Pendências:
 - Limites de recursos no Docker (CPU/memória para Linode 2GB)
 - README atualizado com instruções de deploy em produção
 
-### PRIORIDADE 3 — Validação com Olho do Dono
+### PRIORIDADE 2 — Validação com Olho do Dono
 
 - SubjectTemplate específico para bovinos/pesagem
   Campos sugeridos: brinco, raça, sexo, peso_referencia,
@@ -164,7 +160,7 @@ após estabilização em produção para Olho do Dono:
 | prompts/masters/master-produto-snap.md | Domínio, regras de produto, multi-assinatura |
 | prompts/entregas/entregas-api-snap-v2.md | Sequenciamento tático de entregas |
 | prompts/masters/master-monetizacao.md | Estratégia comercial e posicionamento |
-| prompts/masters/revisao-tecnica-pre-producao.md | Revisão técnica do código — bloqueantes e melhorias antes de produção |
+| prompts/entregas/revisao-tecnica-pre-producao.md | Revisão técnica do código — bloqueantes e melhorias antes de produção |
 | CONTEXT.md | Este arquivo — ponto de entrada |
 
 ---

@@ -37,6 +37,7 @@ Regra de atualização dos planos:
 - `Entrega 2` da API `v2` implementada (share público + listas `mine`)
 - `Entrega 3` da API `v2` implementada (contexto de assinatura + token por feature flag + paginação/ordenação + observabilidade mínima)
 - `Entrega 4` (slices 1-8) implementada: fila em banco + worker local + retry/backoff + stale-recovery + cleanup + telemetria de jobs + correções bloqueantes pré-Postgres (B1-B4) + hardening de contrato/segurança (I1-I7) + **modo assíncrono ativo por padrão** (`asyncCreateEnabled=true`) + heartbeat de lock + Actuator (`/actuator/health`, `/actuator/metrics`)
+- `Entrega 5` implementada: `StorageService` (fallback local + S3 compatível via AWS SDK v2), artefatos persistidos antes do cleanup temp, keys estáveis por `snapId` no fluxo `v2`
 - `Master plan` documentado para evolucao assíncrona com PostgreSQL, workers e storage S3
 
 Arquivos de plano:
@@ -452,7 +453,6 @@ O snapshot inclui, entre outros:
 
 ### Código (próximas entregas/slices)
 
-- **Entrega 5** — Storage S3 (Linode Object Storage): substituir storage local; upload de frames e snapshot.mp4; fallback local para desenvolvimento
 - **Entrega 6** — Hardening operacional: docker-compose de produção separado; PostgreSQL real; health check; limites de recursos
 - **Entrega 7** — SubjectTemplate de bovinos + smoke test com vídeos reais do Olho do Dono
 

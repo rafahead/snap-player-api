@@ -234,16 +234,17 @@ Situação resumida da implementação (com base no código e no plano):
 - `Entrega 2`: concluída (share público + listas `mine`)
 - `Entrega 3`: concluída (assinatura no request, token por feature flag, paginação/ordenação, observabilidade mínima)
 - `Entrega 4`: concluída (slices 1-8: fila em DB, worker local, retry/backoff, stale recovery, cleanup, hardening, async padrão, heartbeat e Actuator)
+- `Entrega 5`: concluída (storage S3 compatível + fallback local persistente + keys estáveis por `snapId`)
 
 ## Pendências consolidadas (código)
 
 ### Curto prazo (mais provável próxima execução)
 
-- ativar storage S3 (Linode Object Storage) para produção
+- configurar variáveis reais do S3/Linode e validar upload em ambiente alvo
 - validar smoke manual completo em modo assíncrono com Actuator (`/actuator/health`, `/actuator/metrics`)
 - preparar docker-compose de produção com health check e limites de recursos
 
-### Médio prazo (produção / pós-Entrega 4)
+### Médio prazo (produção / pós-Entrega 5)
 
 - endurecimento para ambiente distribuído:
   - tuning de claim/batch/timeout por ambiente

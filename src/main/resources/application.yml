@@ -26,6 +26,24 @@ management:
         enabled: true
 
 app:
+  storage:
+    local:
+      # Entrega 5: default dev fallback keeps files in local persistent storage instead of temp dirs.
+      enabled: true
+      basePath: ./.data/storage
+      # Optional; when set, paths returned in API payloads become public URLs built from this base.
+      publicBaseUrl:
+    s3:
+      # Enable in production (Linode Object Storage / S3 compatible). When true, local storage is bypassed.
+      enabled: false
+      endpoint: ${STORAGE_ENDPOINT:}
+      region: ${STORAGE_REGION:us-east-1}
+      bucket: ${STORAGE_BUCKET:}
+      accessKey: ${STORAGE_ACCESS_KEY:}
+      secretKey: ${STORAGE_SECRET_KEY:}
+      publicBaseUrl: ${STORAGE_PUBLIC_BASE_URL:}
+      prefix: ${STORAGE_PREFIX:}
+
   internal:
     # Optional static token that guards all /internal/** routes.
     # When blank (default), the endpoints are open — suitable for dev or when access is restricted

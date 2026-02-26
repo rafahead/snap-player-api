@@ -17,6 +17,7 @@
 
   <properties>
     <java.version>17</java.version>
+    <aws.sdk.version>2.25.67</aws.sdk.version>
   </properties>
 
   <dependencies>
@@ -39,6 +40,11 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
